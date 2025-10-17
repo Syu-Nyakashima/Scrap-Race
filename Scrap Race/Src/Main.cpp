@@ -1,0 +1,66 @@
+#include "DxLib.h"
+#include "PlayScene.h"
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+#include "imgui_impl_dx11.h"
+#include <windows.h>
+
+//---------------------------------------------
+// グローバル
+//---------------------------------------------
+HWND g_hWnd = nullptr;
+WNDPROC g_OriginalWndProc = nullptr;
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+//---------------------------------------------
+// ImGuiに入力を渡すWndProc
+//---------------------------------------------
+LRESULT CALLBACK CustomWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    // ImGuiにWin32メッセージを渡す
+    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+        return TRUE; // ImGuiが処理したならここで終了
+
+    // DxLib本来の処理を呼び出す
+    return CallWindowProc(g_OriginalWndProc, hWnd, msg, wParam, lParam);
+}
+
+//---------------------------------------------
+// エントリーポイント
+//---------------------------------------------
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+{
+    // --- DxLib初期設定 ---
+    ChangeWindowMode(TRUE);                        // ウィンドウモード
+    SetGraphMode(1280, 720, 32);                   // 描画解像度（幅, 高さ, カラービット数）
+    SetWindowSizeExtendRate(1.0);                  // ウィンドウの拡大率（1.0 = 等倍）
+    SetMainWindowText("スクラップレース");         // ウィンドウタイトル
+    SetUseDirect3DVersion(DX_DIRECT3D_11);         // 使用バージョン指定
+
+    if (DxLib_Init() == -1)
+        return -1;
+
+    // --- WndProcをImGui対応に差し替え ---
+    g_hWnd = GetMainWindowHandle();
+    g_OriginalWndProc = (WNDPROC)GetWindowLongPtr(g_hWnd, GWLP_WNDPROC);
+    SetWindowLongPtr(g_hWnd, GWLP_WNDPROC, (LONG_PTR)CustomWndProc);
+
+    // --- マウスカーソルを表示 ---
+    SetUseDirectInputFlag(FALSE);  // ImGuiとの座標ズレ防止
+    SetMouseDispFlag(TRUE);        // 常にマウス表示
+
+    // --- シーン開始 ---
+    PlayScene* scene = new PlayScene();
+
+    while (ProcessMessage() == 0 && CheckHitKey(KEY_INPUT_ESCAPE) == 0)
+    {
+        scene->Update();
+    }
+
+    delete scene;
+    scene = nullptr;
+
+    // --- 終了処理 ---
+    DxLib_End();
+    return 0;
+}
