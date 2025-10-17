@@ -1,2 +1,2 @@
-# Scrap-Race
+# ScrapRace
 3DGame Development
