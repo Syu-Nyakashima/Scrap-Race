@@ -76,7 +76,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\A24040\Desktop\3D_Game\DxLib_VC\プロジェクトに追加すべきファイル_VC用;C:\Users\A24040\Desktop\3D_Game\ScrapRace\Scrap Race\Imgui;C:\Users\A24040\Desktop\3D_Game\ScrapRace\Scrap Race\Imgui\Backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\A24040\Desktop\3D_Game\DxLib_VC\プロジェクトに追加すべきファイル_VC用;C:\Users\A24040\Desktop\3D_Game\Scrap-Race\Scrap Race\Imgui;C:\Users\A24040\Desktop\3D_Game\Scrap-Race\Scrap Race\Imgui\Backends</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -93,7 +93,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\A24040\Desktop\3D_Game\DxLib_VC\プロジェクトに追加すべきファイル_VC用;C:\Users\A24040\Desktop\3D_Game\ScrapRace\Scrap Race\Imgui;C:\Users\A24040\Desktop\3D_Game\ScrapRace\Scrap Race\Imgui\Backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\A24040\Desktop\3D_Game\DxLib_VC\プロジェクトに追加すべきファイル_VC用;C:\Users\A24040\Desktop\3D_Game\Scrap-Race\Scrap Race\Imgui;C:\Users\A24040\Desktop\3D_Game\Scrap-Race\Scrap Race\Imgui\Backends</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -108,7 +108,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\A24040\Desktop\3D_Game\DxLib_VC\プロジェクトに追加すべきファイル_VC用;C:\Users\A24040\Desktop\3D_Game\ScrapRace\Scrap Race\Imgui;C:\Users\A24040\Desktop\3D_Game\ScrapRace\Scrap Race\Imgui\Backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\A24040\Desktop\3D_Game\DxLib_VC\プロジェクトに追加すべきファイル_VC用;C:\Users\A24040\Desktop\3D_Game\Scrap-Race\Scrap Race\Imgui;C:\Users\A24040\Desktop\3D_Game\Scrap-Race\Scrap Race\Imgui\Backends</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -125,7 +125,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\A24040\Desktop\3D_Game\DxLib_VC\プロジェクトに追加すべきファイル_VC用;C:\Users\A24040\Desktop\3D_Game\ScrapRace\Scrap Race\Imgui;C:\Users\A24040\Desktop\3D_Game\ScrapRace\Scrap Race\Imgui\Backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\A24040\Desktop\3D_Game\DxLib_VC\プロジェクトに追加すべきファイル_VC用;C:\Users\A24040\Desktop\3D_Game\Scrap-Race\Scrap Race\Imgui;C:\Users\A24040\Desktop\3D_Game\Scrap-Race\Scrap Race\Imgui\Backends</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -142,6 +142,7 @@
     <ClCompile Include="Imgui\imgui_draw.cpp" />
     <ClCompile Include="Imgui\imgui_tables.cpp" />
     <ClCompile Include="Imgui\imgui_widgets.cpp" />
+    <ClCompile Include="Src\Camera.cpp" />
     <ClCompile Include="Src\Main.cpp" />
     <ClCompile Include="Src\Player.cpp" />
     <ClCompile Include="Src\PlayScene.cpp" />
@@ -155,6 +156,7 @@
     <ClInclude Include="Imgui\imstb_rectpack.h" />
     <ClInclude Include="Imgui\imstb_textedit.h" />
     <ClInclude Include="Imgui\imstb_truetype.h" />
+    <ClInclude Include="Src\Camera.h" />
     <ClInclude Include="Src\Player.h" />
     <ClInclude Include="Src\PlayScene.h" />
   </ItemGroup>

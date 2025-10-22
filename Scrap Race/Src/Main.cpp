@@ -50,15 +50,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     SetMouseDispFlag(TRUE);        // 常にマウス表示
 
     // --- シーン開始 ---
-    PlayScene* scene = new PlayScene();
+    PlayScene scene;
+    scene.Initialize(); // シーン初期化
 
     while (ProcessMessage() == 0 && CheckHitKey(KEY_INPUT_ESCAPE) == 0)
     {
-        scene->Update();
+        scene.Update();
     }
 
-    delete scene;
-    scene = nullptr;
+    scene.Terminate();
 
     // --- 終了処理 ---
     DxLib_End();

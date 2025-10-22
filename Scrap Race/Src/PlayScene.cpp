@@ -5,22 +5,19 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 
-//-------------------------------------------------------------
-// コンストラクタ
-//-------------------------------------------------------------
-PlayScene::PlayScene()
+void PlayScene::Initialize()
 {
     player.Player_Initialize();
+    camera.Camera_Initialize();
     InitImGui();
+
 }
 
-//-------------------------------------------------------------
-// デストラクタ
-//-------------------------------------------------------------
-PlayScene::~PlayScene()
+void PlayScene::Terminate()
 {
-    TerminateImGui();
     player.Player_Terminate();
+    camera.Camera_Terminate();
+    TerminateImGui();
 }
 
 //-------------------------------------------------------------
@@ -67,13 +64,23 @@ void PlayScene::DrawPlayerDebugUI()
     ImGui::Begin("Player Debug");
 
     // 座標操作
-    if (ImGui::TreeNode("Position")) {
-        ImGui::SliderFloat("X", &player.pos.x, -100.0f, 100.0f);
-        ImGui::SliderFloat("Y", &player.pos.y, -100.0f, 100.0f);
-        ImGui::SliderFloat("Z", &player.pos.z, -100.0f, 100.0f);
-        // 折りたたみ要素を終了
-        ImGui::TreePop();
-    }
+    ImGui::Separator();
+    ImGui::Text("Player Position");
+    ImGui::SliderFloat("X", &player.pos.x, -100.0f, 100.0f);
+    ImGui::SliderFloat("Y", &player.pos.y, -100.0f, 100.0f);
+    ImGui::SliderFloat("Z", &player.pos.z, -100.0f, 100.0f);
+        
+    ImGui::Separator();
+    ImGui::Text("Camera Position");
+    static float cameraDistance = 50.0f;
+    static float cameraHeight = 20.0f;
+    static float targetOffsetY = 5.0f;
+
+    ImGui::SliderFloat("Distance", &cameraDistance, 0.0f, 150.0f);
+    ImGui::SliderFloat("Height", &cameraHeight, 0.0f, 100.0f);
+    ImGui::SliderFloat("Target Offset Y", &targetOffsetY, -20.0f, 20.0f);
+    // 値をCameraクラスに渡す（TPS視点用に）
+    camera.SetDebugCameraParams(cameraDistance, cameraHeight, targetOffsetY);
 
     // 角度
     ImGui::Separator();
@@ -101,9 +108,26 @@ void PlayScene::Update()
 {
     if (ProcessMessage() != 0) return;
 
+    static int oldTime = GetNowCount();
+    int nowTime = GetNowCount();
+    float delta = (nowTime - oldTime) / 1000.0f; // 秒
+    oldTime = nowTime;
+
     // --- 1. DxLib描画開始 ---
+    SetBackgroundColor(140, 140, 140); // 灰色に   変更
     ClearDrawScreen();
-    player.Chara_Player_Create(); // モデル描画など
+    player.Player_Update(delta); // Player更新
+
+    // Tabキーで視点切り替え
+    static bool prevTab = false;
+    bool nowTab = (CheckHitKey(KEY_INPUT_TAB) != 0);
+    if (nowTab && !prevTab) camera.ToggleDebugOverView();
+    prevTab = nowTab;
+
+    camera.Update(player, delta);      // カメラの更新
+    
+    //Playerモデル更新
+    player.Player_Draw();
 
     // --- 2. ImGuiフレーム開始 ---
     ImGui_ImplDX11_NewFrame();

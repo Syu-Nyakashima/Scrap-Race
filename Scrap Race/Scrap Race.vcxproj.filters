@@ -13,9 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="ソース ファイル\Imgui">
-      <UniqueIdentifier>{e8d2e0ee-969e-422a-9cf0-81ddb11ce656}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ソース ファイル\Scene">
       <UniqueIdentifier>{c2d6f866-bd9b-4028-b0b1-ee719631b552}</UniqueIdentifier>
     </Filter>
@@ -34,29 +31,11 @@
     <Filter Include="ソース ファイル\Player">
       <UniqueIdentifier>{93cb5e66-2a0b-4b86-9f16-51711602c2a4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\Imgui">
+      <UniqueIdentifier>{b3317748-a6a2-4065-8118-ccdf551d0468}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Imgui\imgui.cpp">
-      <Filter>ソース ファイル\Imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="Imgui\imgui_demo.cpp">
-      <Filter>ソース ファイル\Imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="Imgui\imgui_draw.cpp">
-      <Filter>ソース ファイル\Imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="Imgui\Backends\imgui_impl_dx11.cpp">
-      <Filter>ソース ファイル\Imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="Imgui\Backends\imgui_impl_win32.cpp">
-      <Filter>ソース ファイル\Imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="Imgui\imgui_tables.cpp">
-      <Filter>ソース ファイル\Imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="Imgui\imgui_widgets.cpp">
-      <Filter>ソース ファイル\Imgui</Filter>
-    </ClCompile>
     <ClCompile Include="Src\Main.cpp">
       <Filter>ソース ファイル\Main</Filter>
     </ClCompile>
@@ -66,18 +45,42 @@
     <ClCompile Include="Src\Player.cpp">
       <Filter>ソース ファイル\Player</Filter>
     </ClCompile>
+    <ClCompile Include="Imgui\imgui.cpp">
+      <Filter>ソース ファイル\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Imgui\imgui_demo.cpp">
+      <Filter>ソース ファイル\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Imgui\imgui_draw.cpp">
+      <Filter>ソース ファイル\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Imgui\imgui_tables.cpp">
+      <Filter>ソース ファイル\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Imgui\imgui_widgets.cpp">
+      <Filter>ソース ファイル\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Imgui\Backends\imgui_impl_dx11.cpp">
+      <Filter>ソース ファイル\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Imgui\Backends\imgui_impl_win32.cpp">
+      <Filter>ソース ファイル\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Camera.cpp">
+      <Filter>ソース ファイル\Player</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Src\PlayScene.h">
+      <Filter>ソース ファイル\Scene\Play</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Player.h">
+      <Filter>ソース ファイル\Player</Filter>
+    </ClInclude>
     <ClInclude Include="Imgui\imconfig.h">
       <Filter>ソース ファイル\Imgui</Filter>
     </ClInclude>
     <ClInclude Include="Imgui\imgui.h">
-      <Filter>ソース ファイル\Imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="Imgui\Backends\imgui_impl_dx11.h">
-      <Filter>ソース ファイル\Imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="Imgui\Backends\imgui_impl_win32.h">
       <Filter>ソース ファイル\Imgui</Filter>
     </ClInclude>
     <ClInclude Include="Imgui\imgui_internal.h">
@@ -92,10 +95,13 @@
     <ClInclude Include="Imgui\imstb_truetype.h">
       <Filter>ソース ファイル\Imgui</Filter>
     </ClInclude>
-    <ClInclude Include="Src\PlayScene.h">
-      <Filter>ソース ファイル\Scene\Play</Filter>
+    <ClInclude Include="Imgui\Backends\imgui_impl_dx11.h">
+      <Filter>ソース ファイル\Imgui</Filter>
     </ClInclude>
-    <ClInclude Include="Src\Player.h">
+    <ClInclude Include="Imgui\Backends\imgui_impl_win32.h">
+      <Filter>ソース ファイル\Imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Camera.h">
       <Filter>ソース ファイル\Player</Filter>
     </ClInclude>
   </ItemGroup>
