@@ -1,6 +1,7 @@
 #pragma once
 #include "Player.h"
 #include "Camera.h"
+#include "Stage.h"
 
 class PlayScene
 {
@@ -16,4 +17,5 @@ private:
 
     Player player; // ← プレイヤーのメンバ変数
     Camera camera;
+    Stage stage;
 };

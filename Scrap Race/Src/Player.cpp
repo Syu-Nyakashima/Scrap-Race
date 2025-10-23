@@ -6,8 +6,12 @@ void Player::Player_Initialize()
 {
     pos = VGet(0.0f, 0.0f, 0.0f);
     angle = 0.0f;
-    moveSpeed = 30.0f;
-
+    moveSpeed = 0.0f;
+    SpdMax = 150.0f;
+    SpdMin = 0.0;
+    SpdUp = 0.5f;
+    SpdDown = 0.5f;
+    
     ModelHandle = MV1LoadModel("free_car_1.x");
     if (ModelHandle == -1) printfDx("モデル読み込み失敗！\n");
 
@@ -32,13 +36,43 @@ void Player::Player_Update(float delta)
     float rad = angle * DX_PI_F / 180.0f;
 
     if (CheckHitKey(KEY_INPUT_UP)) {
-        pos.x += sinf(rad) * moveSpeed * delta;
-        pos.z += cosf(rad) * moveSpeed * delta;
+        moveSpeed += SpdUp;
+
+        if (moveSpeed >= SpdMax) {
+            moveSpeed = SpdMax;
+        }
     }
 
-    if (CheckHitKey(KEY_INPUT_DOWN)) {
-        pos.x -= sinf(rad) * moveSpeed * delta;
-        pos.z -= cosf(rad) * moveSpeed * delta;
+    else if(CheckHitKey(KEY_INPUT_DOWN)){
+        //停止時バック
+        if (moveSpeed <= 0.0f) {
+            moveSpeed -= SpdUp;
+            if (moveSpeed < -SpdMax * 0.5f) moveSpeed = -SpdMax * 0.5f;
+        }
+        //停止してなかったらブレーキ
+        else {
+            moveSpeed -= SpdDown*2.0f;
+            if (moveSpeed < 0.0f) moveSpeed = 0.0f;
+        }
+    }
+
+    else{
+        //何も押してなかったら減速
+        if (moveSpeed > 0) {
+            moveSpeed -= SpdDown;
+            if (moveSpeed < 0.0f) moveSpeed = 0.0f;
+        }
+        //バック時
+        else if (moveSpeed < 0) {
+            moveSpeed += SpdUp;
+            if (moveSpeed > 0.0f) moveSpeed = 0.0f;
+        }
+    }
+
+    //計算
+    if (moveSpeed != 0) {
+        pos.x += sinf(rad) * moveSpeed * delta;
+        pos.z += cosf(rad) * moveSpeed * delta;
     }
 }
 
@@ -48,7 +82,7 @@ void Player::Player_Draw()
 
     // モデル原点が中心の場合はYを少し上げる
     MATRIX matRot = MGetRotY(angle * DX_PI_F / 180.0f);
-    MATRIX matTrans = MGetTranslate(VAdd(pos, VGet(0.0f, 2.0f, 0.0f)));
+    MATRIX matTrans = MGetTranslate(VAdd(pos, VGet(0.0f, 0.0f, 0.0f)));
     MATRIX matWorld = MMult(matRot, matTrans);
 
     MV1SetMatrix(ModelHandle, matWorld);

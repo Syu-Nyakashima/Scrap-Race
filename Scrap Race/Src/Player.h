@@ -14,6 +14,10 @@ public:
 
     float angle;
     float moveSpeed;
+    float SpdUp;
+    float SpdDown;
+    float SpdMax;
+    float SpdMin;
 
 private:
     int ModelHandle;

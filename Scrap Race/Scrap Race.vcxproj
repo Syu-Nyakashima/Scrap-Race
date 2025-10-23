@@ -146,6 +146,7 @@
     <ClCompile Include="Src\Main.cpp" />
     <ClCompile Include="Src\Player.cpp" />
     <ClCompile Include="Src\PlayScene.cpp" />
+    <ClCompile Include="Src\Stage.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Imgui\Backends\imgui_impl_dx11.h" />
@@ -159,6 +160,7 @@
     <ClInclude Include="Src\Camera.h" />
     <ClInclude Include="Src\Player.h" />
     <ClInclude Include="Src\PlayScene.h" />
+    <ClInclude Include="Src\Stage.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

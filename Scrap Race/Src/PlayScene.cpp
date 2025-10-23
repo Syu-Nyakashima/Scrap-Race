@@ -9,6 +9,8 @@ void PlayScene::Initialize()
 {
     player.Player_Initialize();
     camera.Camera_Initialize();
+    stage.Stage_Initialize();
+
     InitImGui();
 
 }
@@ -17,6 +19,8 @@ void PlayScene::Terminate()
 {
     player.Player_Terminate();
     camera.Camera_Terminate();
+    stage.Stage_Terminate();
+    
     TerminateImGui();
 }
 
@@ -55,7 +59,7 @@ void PlayScene::TerminateImGui()
 }
 
 //-------------------------------------------------------------
-// PlayerデバッグUI
+// PlaySceneデバッグUI
 //-------------------------------------------------------------
 void PlayScene::DrawPlayerDebugUI()
 {
@@ -63,13 +67,14 @@ void PlayScene::DrawPlayerDebugUI()
 
     ImGui::Begin("Player Debug");
 
-    // 座標操作
+    //プレイヤー座標操作
     ImGui::Separator();
     ImGui::Text("Player Position");
     ImGui::SliderFloat("X", &player.pos.x, -100.0f, 100.0f);
     ImGui::SliderFloat("Y", &player.pos.y, -100.0f, 100.0f);
     ImGui::SliderFloat("Z", &player.pos.z, -100.0f, 100.0f);
         
+    //カメラ座標操作
     ImGui::Separator();
     ImGui::Text("Camera Position");
     static float cameraDistance = 50.0f;
@@ -96,6 +101,10 @@ void PlayScene::DrawPlayerDebugUI()
     if (ImGui::Button("Reset Position"))
     {
         player.pos = VGet(0.0f, 0.0f, 0.0f);
+        player.angle = 0;
+        cameraDistance = 50.0f;
+        cameraHeight = 20.0f;
+        targetOffsetY = 5.0f;
     }
 
     ImGui::End();
@@ -116,6 +125,7 @@ void PlayScene::Update()
     // --- 1. DxLib描画開始 ---
     SetBackgroundColor(140, 140, 140); // 灰色に   変更
     ClearDrawScreen();
+    stage.Stage_Update();
     player.Player_Update(delta); // Player更新
 
     // Tabキーで視点切り替え
@@ -124,7 +134,7 @@ void PlayScene::Update()
     if (nowTab && !prevTab) camera.ToggleDebugOverView();
     prevTab = nowTab;
 
-    camera.Update(player, delta);      // カメラの更新
+    camera.Camera_Update(player, delta);      // カメラの更新
     
     //Playerモデル更新
     player.Player_Draw();

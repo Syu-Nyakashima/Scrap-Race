@@ -24,17 +24,11 @@ static VECTOR Lerp(const VECTOR& a, const VECTOR& b, float t)
 }
 
 
-void Camera::Update(const Player& player, float delta)
+void Camera::Camera_Update(const Player& player, float delta)
 {
-    DrawSphere3D(Eye, 10.0f, 16, GetColor(255, 255, 255), GetColor(255, 255, 255), TRUE);
+    //DrawSphere3D(Eye, 10.0f, 16, GetColor(255, 255, 255), GetColor(255, 255, 255), TRUE);
 
     VECTOR playerPos = player.GetPosition();
-    /*
-    Eye = VAdd(playerPos, VGet(0.0f, 500.0f, -100.0f)); // 上・後ろ
-    Target = playerPos;
-
-    SetCameraPositionAndTarget_UpVecY(Eye, Target);
-    */
 
      // プレイヤーの角度（ラジアン）
     float rad = player.angle * DX_PI_F / 180.0f;
@@ -50,9 +44,7 @@ void Camera::Update(const Player& player, float delta)
     }
     else
     {
-        // -----------------------
         // TPS視点（後ろから追従）
-        // -----------------------
         VECTOR offset = VGet(sinf(rad) * -debugDist, debugHeight, cosf(rad) * -debugDist);
 
         targetEye = VAdd(playerPos, offset);
