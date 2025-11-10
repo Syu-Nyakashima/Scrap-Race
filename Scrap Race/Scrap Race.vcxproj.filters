@@ -72,6 +72,12 @@
     <ClCompile Include="Src\Stage.cpp">
       <Filter>ソース ファイル\Scene\Play</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Scrap.cpp">
+      <Filter>ソース ファイル\Scene\Play</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ItemManager.cpp">
+      <Filter>ソース ファイル\Scene\Play</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Src\PlayScene.h">
@@ -108,6 +114,12 @@
       <Filter>ソース ファイル\Player</Filter>
     </ClInclude>
     <ClInclude Include="Src\Stage.h">
+      <Filter>ソース ファイル\Scene\Play</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\ItemManager.h">
+      <Filter>ソース ファイル\Scene\Play</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Scrap.h">
       <Filter>ソース ファイル\Scene\Play</Filter>
     </ClInclude>
   </ItemGroup>

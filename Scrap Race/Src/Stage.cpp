@@ -2,23 +2,47 @@
 
 void Stage::Stage_Initialize()
 {
+    StageModelHandle = MV1LoadModel("Data/Stage/teststage.mv1");
+    if (StageModelHandle == -1) printfDx("ƒ‚ƒfƒ‹“Ç‚Ýž‚ÝŽ¸”sI\n");
+    MV1SetPosition(StageModelHandle, VGet(100.0f, 0.0f, 0.0f));
+    MV1SetScale(StageModelHandle, VGet(1.0f, 1.0f, 1.0f));
+
+    GoalModelHandle = MV1LoadModel("Data/Stage/goal.mv1");
+    if (StageModelHandle == -1) printfDx("ƒS[ƒ‹ƒ‚ƒfƒ‹“Ç‚Ýž‚ÝŽ¸”sI\n");
+    MV1SetPosition(GoalModelHandle, VGet(220.0f, 0, 0));
+    MV1SetScale(GoalModelHandle, VGet(1.0f, 0.5f, 1.0f));
+
+    GoalPos = VGet(220.0f,0,0);
+    GoalWidth = 100.0f;
+    GoalHeight = 50.0f;
+    GoalDepth = 10.0f;
+
+    isGoal = false;
 }
 
 void Stage::Stage_Terminate()
 {
+    if (StageModelHandle != -1) {
+        MV1DeleteModel(StageModelHandle);
+        StageModelHandle = -1;
+        MV1DeleteModel(GoalModelHandle);
+        GoalModelHandle = -1;
+    }
 }
 
 void Stage::Stage_Update()
 {
+    
     // ===== ’n–Ê‚ð•`‰æ =====
-    VECTOR p1 = VGet(-50.0f, 0.0f, -200.0f);
-    VECTOR p2 = VGet(50.0f, 0.0f, -200.0f);
-    VECTOR p3 = VGet(-50.0f, 0.0f, 200.0f);
-    VECTOR p4 = VGet(50.0f, 0.0f, 200.0f);
+    /*
+    VECTOR p1 = VGet(-10.0f, 0.0f, -10.0f);
+    VECTOR p2 = VGet(10.0f, 0.0f, -10.0f);
+    VECTOR p3 = VGet(-10.0f, 0.0f, 10.0f);
+    VECTOR p4 = VGet(10.0f, 0.0f, 10.0f);
     int groundColor = GetColor(100, 200, 100);
     DrawTriangle3D(p1, p2, p3, groundColor, TRUE);
     DrawTriangle3D(p3, p2, p4, groundColor, TRUE);
-
+    /*
     // ===== ¶‚Ì•Ç =====
     VECTOR lw1 = VGet(-50.0f, 0.0f, -200.0f);
     VECTOR lw2 = VGet(-50.0f, 3.0f, -200.0f);
@@ -40,4 +64,80 @@ void Stage::Stage_Update()
         DrawCone3D(VGet(51.0f, 10.0f, z), VGet(51.0f, 0.0f, z), 3.0f, 16, GetColor(0, 0, 255), GetColor(255, 255, 255), TRUE);
         DrawCone3D(VGet(-51.0f, 10.0f, z), VGet(-51.0f, 0.0f, z), 3.0f, 16, GetColor(0, 0, 255), GetColor(255, 255, 255), TRUE);
     }
+    */
+
+    //ƒS[ƒ‹”»’è(ƒfƒoƒbƒO—p)
+    //ã–Ê
+    DrawLine3D(VGet(GoalPos.x - GoalWidth / 2, 25.0f, GoalPos.z - GoalDepth / 2),
+        VGet(GoalPos.x + GoalWidth / 2, 25.0f, GoalPos.z - GoalDepth / 2),
+        GetColor(255, 255, 0));
+    DrawLine3D(VGet(GoalPos.x + GoalWidth / 2, 25.0f, GoalPos.z - GoalDepth / 2),
+        VGet(GoalPos.x + GoalWidth / 2, 25.0f, GoalPos.z + GoalDepth / 2),
+        GetColor(255, 255, 0));
+    DrawLine3D(VGet(GoalPos.x + GoalWidth / 2, 25.0f, GoalPos.z + GoalDepth / 2),
+        VGet(GoalPos.x - GoalWidth / 2, 25.0f, GoalPos.z + GoalDepth / 2),
+        GetColor(255, 255, 0));
+    DrawLine3D(VGet(GoalPos.x - GoalWidth / 2, 25.0f, GoalPos.z + GoalDepth / 2),
+        VGet(GoalPos.x - GoalWidth / 2, 25.0f, GoalPos.z - GoalDepth / 2),
+        GetColor(255, 255, 0));
+
+    DrawLine3D(VGet(GoalPos.x - GoalWidth / 2, 0.0f, GoalPos.z - GoalDepth / 2),
+        VGet(GoalPos.x - GoalWidth / 2, 25.0f, GoalPos.z - GoalDepth / 2),
+        GetColor(255, 255, 0));
+    DrawLine3D(VGet(GoalPos.x + GoalWidth / 2, 0.0f, GoalPos.z - GoalDepth / 2),
+        VGet(GoalPos.x + GoalWidth / 2, 25.0f, GoalPos.z - GoalDepth / 2),
+        GetColor(255, 255, 0));
+    DrawLine3D(VGet(GoalPos.x + GoalWidth / 2, 0.0f, GoalPos.z + GoalDepth / 2),
+        VGet(GoalPos.x + GoalWidth / 2, 25.0f, GoalPos.z + GoalDepth / 2),
+        GetColor(255, 255, 0));
+    DrawLine3D(VGet(GoalPos.x - GoalWidth / 2, 0.0f, GoalPos.z + GoalDepth / 2),
+        VGet(GoalPos.x - GoalWidth / 2, 25.0f, GoalPos.z + GoalDepth / 2),
+        GetColor(255, 255, 0));
+}
+
+void Stage::Stage_Draw()
+{
+    if (StageModelHandle == -1) return;
+    MV1DrawModel(StageModelHandle);
+
+    if (GoalModelHandle == -1) return;
+    MV1DrawModel(GoalModelHandle);
+}
+
+bool Stage::CheckGoal(VECTOR playerPos)
+{
+    if (isGoal) return true;
+    
+    static bool wasInside = false;
+    static float inZ = 0.0f;
+    static float outZ = 0.0f;
+
+    float hw = GoalWidth / 2.0f;
+    float hh = GoalHeight / 2.0f;
+    float hd = GoalDepth / 2.0f;
+
+    //ƒS[ƒ‹”»’è‚Ì“à‘¤‚É‚¢‚é‚©
+    bool nowInside =
+        playerPos.x > GoalPos.x - hw &&
+        playerPos.x < GoalPos.x + hw &&
+        playerPos.y > GoalPos.y - hh &&
+        playerPos.y < GoalPos.y + hh &&
+        playerPos.z > GoalPos.z - hd &&
+        playerPos.z < GoalPos.z + hd;
+
+    if (!wasInside && nowInside) {
+        inZ = playerPos.z;
+    }
+
+    if (wasInside && !nowInside) {
+        outZ = playerPos.z;
+
+        if (inZ < outZ) {
+            isGoal = true;
+            return true;
+        }
+    }
+
+    wasInside = nowInside;
+    return false;
 }

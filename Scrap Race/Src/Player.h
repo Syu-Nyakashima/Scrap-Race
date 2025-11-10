@@ -9,8 +9,8 @@ public:
     void Player_Update(float delta);
     void Player_Draw();                     
 
-    VECTOR GetPosition() const { return pos; }  // プレイヤーの座標取得
     VECTOR pos;
+    float radius = 5.0f;
 
     float angle;
     float moveSpeed;
@@ -18,6 +18,9 @@ public:
     float SpdDown;
     float SpdMax;
     float SpdMin;
+
+    float Hp = 100.0f;
+    void Heal(float amount);
 
 private:
     int ModelHandle;

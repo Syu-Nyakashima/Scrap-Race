@@ -5,14 +5,18 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 
+
+
 void PlayScene::Initialize()
 {
     player.Player_Initialize();
     camera.Camera_Initialize();
     stage.Stage_Initialize();
+    itemManager.ItemManager_Initialize();
 
     InitImGui();
 
+    oldTime = GetNowCount();
 }
 
 void PlayScene::Terminate()
@@ -20,6 +24,7 @@ void PlayScene::Terminate()
     player.Player_Terminate();
     camera.Camera_Terminate();
     stage.Stage_Terminate();
+    itemManager.ItemManager_Terminate();
     
     TerminateImGui();
 }
@@ -63,7 +68,7 @@ void PlayScene::TerminateImGui()
 //-------------------------------------------------------------
 void PlayScene::DrawPlayerDebugUI()
 {
-    ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_Once);
+    ImGui::SetNextWindowSize(ImVec2(400, 500), ImGuiCond_Once);
 
     ImGui::Begin("Player Debug");
 
@@ -77,34 +82,40 @@ void PlayScene::DrawPlayerDebugUI()
     //カメラ座標操作
     ImGui::Separator();
     ImGui::Text("Camera Position");
-    static float cameraDistance = 50.0f;
-    static float cameraHeight = 20.0f;
-    static float targetOffsetY = 5.0f;
+    static float cameraDistance = 15.0f;
+    static float cameraHeight = 0.0f;
+    static float targetOffsetY = 0.0f;
+    static float cameraNear=0.1f;
+    static float cameraFar=500.0f;
 
     ImGui::SliderFloat("Distance", &cameraDistance, 0.0f, 150.0f);
     ImGui::SliderFloat("Height", &cameraHeight, 0.0f, 100.0f);
     ImGui::SliderFloat("Target Offset Y", &targetOffsetY, -20.0f, 20.0f);
+    ImGui::SliderFloat("cameraNear", &cameraNear, 0.0f, 1000.0f);
+    ImGui::SliderFloat("cameraFar", &cameraFar, 0.0f, 1000.0f);
     // 値をCameraクラスに渡す（TPS視点用に）
-    camera.SetDebugCameraParams(cameraDistance, cameraHeight, targetOffsetY);
+    camera.SetDebugCameraParams(cameraDistance, cameraHeight, targetOffsetY,cameraNear,cameraFar);
+
 
     // 角度
     ImGui::Separator();
-    ImGui::Text("Rotation");
-    ImGui::SliderFloat("Angle", &player.angle, 0.0f, 360.0f);
+    ImGui::Text("DeltaTime");
+    ImGui::InputFloat("DeltaTime",&totalTime , 0.0f, 1000.0f);
 
-    // 移動速度
+    // ステータス
     ImGui::Separator();
-    ImGui::Text("Speed");
-    ImGui::SliderFloat("Move Speed", &player.moveSpeed, 0.0f, 100.0f);
+    ImGui::Text("Status");
+    ImGui::InputFloat("Move Speed", &player.moveSpeed, 0.0f, 100.0f);
+    ImGui::InputFloat("HP", &player.Hp, 0.0f, 100.0f);
 
     // 位置リセット
     if (ImGui::Button("Reset Position"))
     {
         player.pos = VGet(0.0f, 0.0f, 0.0f);
         player.angle = 0;
-        cameraDistance = 50.0f;
-        cameraHeight = 20.0f;
-        targetOffsetY = 5.0f;
+        cameraDistance = 0.0f;
+        cameraHeight = 0.0f;
+        targetOffsetY = 0.0f;
     }
 
     ImGui::End();
@@ -117,28 +128,36 @@ void PlayScene::Update()
 {
     if (ProcessMessage() != 0) return;
 
-    static int oldTime = GetNowCount();
     int nowTime = GetNowCount();
-    float delta = (nowTime - oldTime) / 1000.0f; // 秒
+    deltaTime = (nowTime - oldTime) / 1000.0f; // 秒
     oldTime = nowTime;
+    totalTime += deltaTime;
 
     // --- 1. DxLib描画開始 ---
-    SetBackgroundColor(140, 140, 140); // 灰色に   変更
+    SetBackgroundColor(140, 140, 140);
     ClearDrawScreen();
-    stage.Stage_Update();
-    player.Player_Update(delta); // Player更新
 
-    // Tabキーで視点切り替え
-    static bool prevTab = false;
-    bool nowTab = (CheckHitKey(KEY_INPUT_TAB) != 0);
-    if (nowTab && !prevTab) camera.ToggleDebugOverView();
-    prevTab = nowTab;
-
-    camera.Camera_Update(player, delta);      // カメラの更新
+    player.Player_Update(deltaTime);
+    camera.Camera_Update(player, deltaTime);    // カメラの更新
+    itemManager.ItemManager_Update(player.pos, deltaTime, player);
     
+    //Stage更新
+    stage.Stage_Update();
+    stage.Stage_Draw();
+
     //Playerモデル更新
     player.Player_Draw();
+    itemManager.ItemManager_Draw();
 
+    //UI
+    if (stage.CheckGoal(player.pos))
+    {
+        DrawString(0, 0, "GOAL!", GetColor(255, 255, 0));
+    }
+
+    if (player.Hp <= 0.0f) {
+        printfDx("ゲームオーバー\n");
+    }
     // --- 2. ImGuiフレーム開始 ---
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();

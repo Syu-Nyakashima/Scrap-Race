@@ -1,5 +1,4 @@
 #include "Player.h"
-#include "DxLib.h"
 #include <math.h>
 
 void Player::Player_Initialize()
@@ -11,11 +10,10 @@ void Player::Player_Initialize()
     SpdMin = 0.0;
     SpdUp = 0.5f;
     SpdDown = 0.5f;
+    Hp = 100.0f;
     
-    ModelHandle = MV1LoadModel("free_car_1.x");
+    ModelHandle = MV1LoadModel("Data/Model/free_car_1.mv1");
     if (ModelHandle == -1) printfDx("モデル読み込み失敗！\n");
-
-    MV1SetScale(ModelHandle, VGet(1.0f, 1.0f, 1.0f));
 }
 
 void Player::Player_Terminate()
@@ -28,6 +26,11 @@ void Player::Player_Terminate()
 
 void Player::Player_Update(float delta)
 {
+    Hp -= 0.01f;   
+    if (Hp <= 0.0f) {
+        Hp = 0.0f;
+    }
+
     // 左右回転
     if (CheckHitKey(KEY_INPUT_LEFT))  angle -= 180.0f * delta;
     if (CheckHitKey(KEY_INPUT_RIGHT)) angle += 180.0f * delta;
@@ -35,12 +38,11 @@ void Player::Player_Update(float delta)
     // 前後移動
     float rad = angle * DX_PI_F / 180.0f;
 
+    //加速
     if (CheckHitKey(KEY_INPUT_UP)) {
         moveSpeed += SpdUp;
 
-        if (moveSpeed >= SpdMax) {
-            moveSpeed = SpdMax;
-        }
+        if (moveSpeed >= SpdMax) moveSpeed = SpdMax;
     }
 
     else if(CheckHitKey(KEY_INPUT_DOWN)){
@@ -80,14 +82,23 @@ void Player::Player_Draw()
 {
     if (ModelHandle == -1) return;
 
-    // モデル原点が中心の場合はYを少し上げる
+    //モデル制御 
+
+    MATRIX matScale = MGetScale(VGet(1.0f, 1.0f, 1.0f));
     MATRIX matRot = MGetRotY(angle * DX_PI_F / 180.0f);
     MATRIX matTrans = MGetTranslate(VAdd(pos, VGet(0.0f, 0.0f, 0.0f)));
-    MATRIX matWorld = MMult(matRot, matTrans);
+    MATRIX matWorld = MMult(MMult(matScale, matRot), matTrans);
 
     MV1SetMatrix(ModelHandle, matWorld);
     MV1DrawModel(ModelHandle);
 
     // デバッグ用球（必ず見える）
     //DrawSphere3D(pos, 2.0f, 16, GetColor(255, 0, 0), GetColor(255, 0, 0), TRUE);
+}
+
+void Player::Heal(float amount)
+{
+    Hp += amount;
+    Hp = (Hp > 100.0f) ? 100.0f : Hp;
+   // if (Hp > 100.0f) Hp = 100.0f;
 }
