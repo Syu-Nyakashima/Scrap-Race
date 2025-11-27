@@ -10,16 +10,21 @@ enum class ScrapType {
 
 class Scrap {
 public:
-	void Scrap_Initialize(const VECTOR& position, ScrapType scraptype, int normalModel, int rareModel);
-	void Scrap_Terminate();
+	void Initialize(const VECTOR& position, ScrapType scraptype, int normalModel, int rareModel);
+	void Terminate();
 
-	void Scrap_Update(float deltaTime);
-	void Scrap_Draw();
+	void Update(float deltaTime,int checkColModel);
+	void Draw();
 	bool IsExpired() const { return lifetime <= 0.0f || collected; }
 	void CheckCollision(Player& player);
+	void SetVelocity(const VECTOR& velocity);
+	void SetInvincibleTime(float time);
 private:
 	VECTOR pos;
+	VECTOR vel;
+
 	float lifetime = 10.0f;
+	float invincibleTime = 0.0f;
 	float radius = 2.0f; // Õ“Ë”»’è—p
 	float healAmount = 0.0f;
 	ScrapType type;

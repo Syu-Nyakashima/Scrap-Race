@@ -1,7 +1,7 @@
 #include "Camera.h"
 #include <math.h>
 
-void Camera::Camera_Initialize()
+void Camera::Initialize()
 {
     Eye = VGet(0.0f, 0.0f, 0.0f);
     Target = VGet(0.0f, 1.0f, 0.0f);
@@ -11,7 +11,7 @@ void Camera::Camera_Initialize()
     SetCameraNearFar(debugNear, debugFar);
 }
 
-void Camera::Camera_Terminate() 
+void Camera::Terminate() 
 {
 }
 
@@ -21,7 +21,7 @@ static VECTOR Lerp(const VECTOR& a, const VECTOR& b, float t)
 }
 
 
-void Camera::Camera_Update(const Player& player, float delta)
+void Camera::Update(const Player& player, float delta)
 {
     //DrawSphere3D(Eye, 10.0f, 16, GetColor(255, 255, 255), GetColor(255, 255, 255), TRUE);
 
@@ -46,7 +46,7 @@ void Camera::Camera_Update(const Player& player, float delta)
     SetCameraNearFar(debugNear, debugFar);
 
     VECTOR forward = VGet(sinf(rad), 0.0f, cosf(rad));
-    DrawLine3D(playerPos, VAdd(playerPos, VScale(forward, 20.0f)), GetColor(255, 255, 0)); // ‰©ü‚ª‘O•ûŒü
+    DrawLine3D(playerPos, VAdd(playerPos, VScale(forward, 200.0f)), GetColor(255, 255, 0)); // ‰©ü‚ª‘O•ûŒü
 }
 
 void Camera::ToggleDebugOverView()

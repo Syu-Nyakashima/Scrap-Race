@@ -163,6 +163,7 @@
     <ClInclude Include="Src\ItemManager.h" />
     <ClInclude Include="Src\Player.h" />
     <ClInclude Include="Src\PlayScene.h" />
+    <ClInclude Include="Src\Result.h" />
     <ClInclude Include="Src\Scrap.h" />
     <ClInclude Include="Src\Stage.h" />
   </ItemGroup>

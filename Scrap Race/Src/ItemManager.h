@@ -6,21 +6,31 @@
 
 class ItemManager {
 public:
-	void ItemManager_Initialize();
-	void ItemManager_Terminate();
+	void Initialize();
+	void Terminate();
 
-	void ItemManager_Update(const VECTOR& playerPos, float deltaTime,Player& player);
-	void ItemManager_Draw();
+	void Update(const VECTOR& playerPos, float playerAngle, float deltaTime,Player& player,int checkColModel);
+	void Draw();
 
 private:
-	//Scrapïœêî
-	void SpawnScrapAroundPlayer(const VECTOR& playerPos, ScrapType type);
+	//Scrapä÷êî
+
+	void SpawnNormalScrap(const VECTOR& playerPos, int checkColModel);
+	void SpawnRareScrap(const VECTOR& playerPos, float playerAngle, int checkColModel, int count);
+
+	//è’ìÀîªíË
+	float GetGroundHeight(VECTOR position, int checkColModel);
+	bool IsPositionValid(VECTOR position, int checkColModel, float checkRadius);
+
+	//ïœêî
 	std::vector<Scrap> Scraps;
 	float scrapSpawnTimer = 0.0f;
 	float scrapSpawnInterval = 1.0f;
 	float scrapSpawnRadius = 50.0f;
-	size_t maxScraps = 10;
+	size_t maxScraps = 10;// ç≈ëÂèoåªêî
 
 	int normalScrapModel = -1;
 	int rareScrapModel = -1;
+
+	bool lastWallHitState = false;
 };

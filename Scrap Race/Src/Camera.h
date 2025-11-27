@@ -4,9 +4,9 @@
 
 class Camera {
 public:
-	void Camera_Initialize();
-	void Camera_Terminate();
-	void Camera_Update(const Player& player, float delta);
+	void Initialize();
+	void Terminate();
+	void Update(const Player& player, float delta);
 
 	// デバッグ切り替え
 	void ToggleDebugOverView();

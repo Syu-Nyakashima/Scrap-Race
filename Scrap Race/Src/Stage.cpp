@@ -1,39 +1,64 @@
-#include "Stage.h"
+ï»¿#include "Stage.h"
 
-void Stage::Stage_Initialize()
+void Stage::Initialize()
 {
+    // ãƒ¢ãƒ‡ãƒ«ãƒãƒ³ãƒ‰ãƒ«ã‚’åˆæœŸåŒ–
+    StageModelHandle = -1;
+    CheckColModel = -1;
+    GoalModelHandle = -1;
+
     StageModelHandle = MV1LoadModel("Data/Stage/teststage.mv1");
-    if (StageModelHandle == -1) printfDx("ƒ‚ƒfƒ‹“Ç‚Ýž‚ÝŽ¸”sI\n");
-    MV1SetPosition(StageModelHandle, VGet(100.0f, 0.0f, 0.0f));
+    if (StageModelHandle == -1) printfDx("ã‚¹ãƒ†ãƒ¼ã‚¸ãƒ¢ãƒ‡ãƒ«èª­ã¿è¾¼ã¿å¤±æ•—\n");
+
+    MV1SetPosition(StageModelHandle, VGet(0.0f, 0.0f, 0.0f));
     MV1SetScale(StageModelHandle, VGet(1.0f, 1.0f, 1.0f));
 
+    // StageModelHandleã¨åŒã˜ã‚‚ã®ã‚’ä½¿ã†
+    CheckColModel = StageModelHandle;
+
+    if (CheckColModel != -1){
+        // ã‚³ãƒªã‚¸ãƒ§ãƒ³æƒ…å ±ã®æ§‹ç¯‰
+        MV1SetupCollInfo(CheckColModel, -1, 8, 8, 8);
+    }
+    else {
+        printfDx("ã‚³ãƒªã‚¸ãƒ§ãƒ³ãƒ¢ãƒ‡ãƒ«èª­ã¿è¾¼ã¿å¤±æ•—\n");
+    }
+
+    // ã‚´ãƒ¼ãƒ«ãƒ¢ãƒ‡ãƒ«
     GoalModelHandle = MV1LoadModel("Data/Stage/goal.mv1");
-    if (StageModelHandle == -1) printfDx("ƒS[ƒ‹ƒ‚ƒfƒ‹“Ç‚Ýž‚ÝŽ¸”sI\n");
-    MV1SetPosition(GoalModelHandle, VGet(220.0f, 0, 0));
+    if (GoalModelHandle == -1) printfDx("ã‚´ãƒ¼ãƒ«ãƒ¢ãƒ‡ãƒ«èª­ã¿è¾¼ã¿å¤±æ•—\n");
+    MV1SetPosition(GoalModelHandle, VGet(120.0f, 0, -50.0f));
     MV1SetScale(GoalModelHandle, VGet(1.0f, 0.5f, 1.0f));
 
-    GoalPos = VGet(220.0f,0,0);
+    GoalPos = VGet(120.0f, 0, -50.0f);
     GoalWidth = 100.0f;
     GoalHeight = 50.0f;
     GoalDepth = 10.0f;
-
     isGoal = false;
 }
 
-void Stage::Stage_Terminate()
+void Stage::Terminate()
 {
+    if (CheckColModel != -1)
+    {
+        MV1TerminateCollInfo(CheckColModel, -1);
+    }
+
     if (StageModelHandle != -1) {
         MV1DeleteModel(StageModelHandle);
         StageModelHandle = -1;
+    }
+
+    if (GoalModelHandle != -1) {
         MV1DeleteModel(GoalModelHandle);
         GoalModelHandle = -1;
     }
 }
 
-void Stage::Stage_Update()
+void Stage::Update()
 {
     
-    // ===== ’n–Ê‚ð•`‰æ =====
+    // ===== åœ°é¢ã‚’æç”» =====
     /*
     VECTOR p1 = VGet(-10.0f, 0.0f, -10.0f);
     VECTOR p2 = VGet(10.0f, 0.0f, -10.0f);
@@ -42,8 +67,8 @@ void Stage::Stage_Update()
     int groundColor = GetColor(100, 200, 100);
     DrawTriangle3D(p1, p2, p3, groundColor, TRUE);
     DrawTriangle3D(p3, p2, p4, groundColor, TRUE);
-    /*
-    // ===== ¶‚Ì•Ç =====
+    
+    // ===== å·¦ã®å£ =====
     VECTOR lw1 = VGet(-50.0f, 0.0f, -200.0f);
     VECTOR lw2 = VGet(-50.0f, 3.0f, -200.0f);
     VECTOR lw3 = VGet(-50.0f, 0.0f, 200.0f);
@@ -52,7 +77,7 @@ void Stage::Stage_Update()
     DrawTriangle3D(lw1, lw2, lw3, wallColor, TRUE);
     DrawTriangle3D(lw3, lw2, lw4, wallColor, TRUE);
 
-    // ===== ‰E‚Ì•Ç =====
+    // ===== å³ã®å£ =====
     VECTOR rw1 = VGet(50.0f, 0.0f, -200.0f);
     VECTOR rw2 = VGet(50.0f, 3.0f, -200.0f);
     VECTOR rw3 = VGet(50.0f, 0.0f, 200.0f);
@@ -66,8 +91,8 @@ void Stage::Stage_Update()
     }
     */
 
-    //ƒS[ƒ‹”»’è(ƒfƒoƒbƒO—p)
-    //ã–Ê
+    //ã‚´ãƒ¼ãƒ«åˆ¤å®š(ãƒ‡ãƒãƒƒã‚°ç”¨)
+    //ä¸Šé¢
     DrawLine3D(VGet(GoalPos.x - GoalWidth / 2, 25.0f, GoalPos.z - GoalDepth / 2),
         VGet(GoalPos.x + GoalWidth / 2, 25.0f, GoalPos.z - GoalDepth / 2),
         GetColor(255, 255, 0));
@@ -95,7 +120,7 @@ void Stage::Stage_Update()
         GetColor(255, 255, 0));
 }
 
-void Stage::Stage_Draw()
+void Stage::Draw()
 {
     if (StageModelHandle == -1) return;
     MV1DrawModel(StageModelHandle);
@@ -116,7 +141,7 @@ bool Stage::CheckGoal(VECTOR playerPos)
     float hh = GoalHeight / 2.0f;
     float hd = GoalDepth / 2.0f;
 
-    //ƒS[ƒ‹”»’è‚Ì“à‘¤‚É‚¢‚é‚©
+    //ã‚´ãƒ¼ãƒ«åˆ¤å®šã®å†…å´ã«ã„ã‚‹ã‹
     bool nowInside =
         playerPos.x > GoalPos.x - hw &&
         playerPos.x < GoalPos.x + hw &&

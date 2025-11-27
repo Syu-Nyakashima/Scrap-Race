@@ -1,26 +1,27 @@
 #pragma once
-#include "Player.h"
 #include "DxLib.h"
 
 class Stage 
 {
 public:
-	void Stage_Initialize();
-	void Stage_Terminate();
+	void Initialize();
+	void Terminate();
 
-	void Stage_Update();
-	void Stage_Draw();
+	void Update();
+	void Draw();
 
 	bool CheckGoal(VECTOR playerPos);
+
+	int GetCheckColModel() const { return CheckColModel; }
+
 private:
-	int StageModelHandle;
-	int GoalModelHandle;
+	int StageModelHandle = -1;
+	int CheckColModel = -1;
+	int GoalModelHandle = -1;
 
 	VECTOR GoalPos;
 	float GoalWidth;
 	float GoalHeight;
 	float GoalDepth;
 	bool isGoal;
-
-	Player player;
 };

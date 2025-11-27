@@ -34,6 +34,9 @@
     <Filter Include="ソース ファイル\Imgui">
       <UniqueIdentifier>{b3317748-a6a2-4065-8118-ccdf551d0468}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\Scene\Result">
+      <UniqueIdentifier>{a9ea75ec-2c06-468a-840b-9a71c4fac97e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Main.cpp">
@@ -121,6 +124,9 @@
     </ClInclude>
     <ClInclude Include="Src\Scrap.h">
       <Filter>ソース ファイル\Scene\Play</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Result.h">
+      <Filter>ソース ファイル\Scene\Result</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

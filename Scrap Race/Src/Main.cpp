@@ -25,6 +25,41 @@ LRESULT CALLBACK CustomWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
     return CallWindowProc(g_OriginalWndProc, hWnd, msg, wParam, lParam);
 }
 
+
+//-------------------------------------------------------------
+// ImGui 初期化
+//-------------------------------------------------------------
+void InitImGui()
+{
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+    HWND hwnd = GetMainWindowHandle();
+
+    // DxLib内部のDirectX11デバイスを取得
+    ID3D11Device* device = (ID3D11Device*)GetUseDirect3D11Device();
+    ID3D11DeviceContext* context = (ID3D11DeviceContext*)GetUseDirect3D11DeviceContext();
+
+    if (device && context)
+    {
+        ImGui_ImplWin32_Init(hwnd);
+        ImGui_ImplDX11_Init(device, context);
+    }
+}
+
+//-------------------------------------------------------------
+// ImGui 終了処理
+//-------------------------------------------------------------
+void TerminateImGui()
+{
+    ImGui_ImplDX11_Shutdown();
+    ImGui_ImplWin32_Shutdown();
+    ImGui::DestroyContext();
+}
+
 //---------------------------------------------
 // エントリーポイント
 //---------------------------------------------
@@ -51,15 +86,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     SetMouseDispFlag(TRUE);        // 常にマウス表示
 
     // --- シーン開始 ---
+
     PlayScene scene;
+    void InitImGui();
+    void TerminateImGui();
     scene.Initialize(); // シーン初期化
+    InitImGui();
 
     while (ProcessMessage() == 0 && CheckHitKey(KEY_INPUT_ESCAPE) == 0)
     {
         scene.Update();
     }
 
-    scene.Terminate();
+    TerminateImGui();
 
     // --- 終了処理 ---
     DxLib_End();
