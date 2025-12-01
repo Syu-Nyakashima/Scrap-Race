@@ -5,17 +5,13 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 
-
-
 PlayScene::PlayScene() : player(stage)
 {
+    //オブジェクトの構築、メンバ変数の初期化
 }
 
 PlayScene::~PlayScene()
 {   
-    stage.Terminate();
-    camera.Terminate();
-    itemManager.Terminate();
 }
 
 void PlayScene::Initialize()
@@ -25,11 +21,16 @@ void PlayScene::Initialize()
     camera.Initialize();
     itemManager.Initialize();
 
-    
-
     oldTime = GetNowCount();
+    totalTime = 0.0f;
 }
 
+void PlayScene::Terminate() 
+{
+    stage.Terminate();
+    camera.Terminate();
+    itemManager.Terminate();
+}
 
 //-------------------------------------------------------------
 // PlaySceneデバッグUI

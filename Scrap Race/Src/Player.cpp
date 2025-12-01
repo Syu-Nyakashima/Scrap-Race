@@ -28,7 +28,7 @@ void Player::Initialize()
     SpdDown = 0.5f;
     Hp = 100.0f;
 
-    ModelHandle = MV1LoadModel("Data/Model/free_car_1.mv1");
+    ModelHandle = MV1LoadModel("Data/Model/RaceCarModel.mv1");
     if (ModelHandle == -1) printfDx("モデル読み込み失敗！\n");
 }
 
@@ -191,21 +191,8 @@ void Player::CheckWall(int CheckColModel, float delta)
     if (CheckColModel == -1) return;
 
     const float WALL_RADIUS = capsuleRadius;
-    float speed = sqrtf(vel.x * vel.x + vel.z * vel.z);
-
-    // 速度制限
-    const float MAX_SAFE_SPEED = WALL_RADIUS * 2.0f;  // 少し緩め
-
-    if (speed > MAX_SAFE_SPEED)
-    {
-        float scale = MAX_SAFE_SPEED / speed;
-        vel.x *= scale;
-        vel.z *= scale;
-    }
-
-    // 壁判定
     const int MAX_ITERATIONS = 3;
-    hitWall = false;  // このフレームで壁に当たったかをリセット
+    hitWall = false;
 
     for (int iteration = 0; iteration < MAX_ITERATIONS; iteration++)
     {
@@ -223,6 +210,8 @@ void Player::CheckWall(int CheckColModel, float delta)
         }
 
         VECTOR totalPushOut = VGet(0.0f, 0.0f, 0.0f);
+        VECTOR avgNormal = VGet(0.0f, 0.0f, 0.0f);
+        int validNormalCount = 0;
 
         for (int i = 0; i < HitPolyDim.HitNum; i++)
         {
@@ -238,6 +227,8 @@ void Player::CheckWall(int CheckColModel, float delta)
             if (penetration > 0.0f)
             {
                 totalPushOut = VAdd(totalPushOut, VScale(normal, penetration));
+                avgNormal = VAdd(avgNormal, normal);
+                validNormalCount++;
             }
         }
 
@@ -247,15 +238,27 @@ void Player::CheckWall(int CheckColModel, float delta)
         {
             pos = VAdd(pos, VScale(totalPushOut, 1.1f));
 
-            VECTOR pushDir = VNorm(totalPushOut);
-            float velDot = VDot(vel, pushDir);
-
-            if (velDot < 0.0f)
+            // 平均法線を正規化
+            if (validNormalCount > 0)
             {
-                vel = VSub(vel, VScale(pushDir, velDot));
+                avgNormal = VScale(avgNormal, 1.0f / validNormalCount);
+                avgNormal = VNorm(avgNormal);
+
+                // 速度ベクトルを反射 (反発係数0.5で跳ね返り)
+                const float RESTITUTION = 0.5f; // 0.0〜1.0 (0=吸収, 1=完全反射)
+                float velDot = VDot(vel, avgNormal);
+
+                if (velDot < 0.0f)
+                {
+                    VECTOR reflection = VScale(avgNormal, velDot * (1.0f + RESTITUTION));
+                    vel = VSub(vel, reflection);
+
+                    // moveSpeedも反転
+                    moveSpeed *= -RESTITUTION;
+                }
             }
 
-            hitWall = true;  // 壁に当たった
+            hitWall = true;
         }
         else
         {
@@ -263,26 +266,15 @@ void Player::CheckWall(int CheckColModel, float delta)
         }
     }
 
-    // 壁に当たった瞬間の処理
+    // 壁に当たった瞬間のHP減少
     if (hitWall && !wasHitWall)
     {
-        // HP減少
         float currentSpeed = fabsf(moveSpeed);
+
+        //HP減少
         float MinusHp = currentSpeed * 0.1f;
         Hp -= MinusHp;
-        printfDx("%.2fHP減少\n", MinusHp);
     }
 
-    // 壁に当たっている間の処理
-    if (hitWall)
-    {
-        // 減速率
-        const float SPEED_REDUCTION = 0.6f;
-        moveSpeed *= SPEED_REDUCTION;
-        printfDx("%.2f速度減少\n", moveSpeed);
-
-    }
-
-    // 次フレーム用に状態を保存
     wasHitWall = hitWall;
 }

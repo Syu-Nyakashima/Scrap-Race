@@ -1,17 +1,19 @@
 #pragma once
+#include "BaseScene.h"
 #include "Player.h"
 #include "Camera.h"
 #include "Stage.h"
 #include "ItemManager.h"
 
-class PlayScene
+class PlayScene : public BaseScene
 {
 public:
     PlayScene();   // コンストラクタ
     ~PlayScene();  // デストラクタ
 
-    void Initialize();
-    void Update();
+    void Initialize() override;
+    void Terminate() override;
+    void Update() override;
 
 private:
    

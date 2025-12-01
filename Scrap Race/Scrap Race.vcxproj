@@ -147,6 +147,8 @@
     <ClCompile Include="Src\Main.cpp" />
     <ClCompile Include="Src\Player.cpp" />
     <ClCompile Include="Src\PlayScene.cpp" />
+    <ClCompile Include="Src\Result.cpp" />
+    <ClCompile Include="Src\SceneManager.cpp" />
     <ClCompile Include="Src\Scrap.cpp" />
     <ClCompile Include="Src\Stage.cpp" />
   </ItemGroup>
@@ -159,11 +161,13 @@
     <ClInclude Include="Imgui\imstb_rectpack.h" />
     <ClInclude Include="Imgui\imstb_textedit.h" />
     <ClInclude Include="Imgui\imstb_truetype.h" />
+    <ClInclude Include="Src\BaseScene.h" />
     <ClInclude Include="Src\Camera.h" />
     <ClInclude Include="Src\ItemManager.h" />
     <ClInclude Include="Src\Player.h" />
     <ClInclude Include="Src\PlayScene.h" />
     <ClInclude Include="Src\Result.h" />
+    <ClInclude Include="Src\SceneManager.h" />
     <ClInclude Include="Src\Scrap.h" />
     <ClInclude Include="Src\Stage.h" />
   </ItemGroup>
