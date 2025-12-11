@@ -1,5 +1,5 @@
 #pragma once
-#include "DxLib.h"
+#include "BaseScene.h"
 
 enum ResultType
 {
@@ -7,12 +7,13 @@ enum ResultType
     RESULT_CLEAR
 };
 
-enum ResultMenuSelect
+enum ResultSelect
 {
-    MENU_RETRY,         // リトライ(同じステージ)
-    MENU_STAGE_SELECT,  // ステージ選択
-    MENU_TITLE,         // タイトルに戻る
-    MENU_MAX
+    RESULT_RETRY,         // リトライ(同じステージ)
+    RESULT_STAGE_SELECT,  //ステージセレクト
+    RESULT_MENU,          // メニュー選択
+    RESULT_TITLE,         // タイトルに戻る
+    RESULT_MAX
 };
 
 // リザルト情報を渡すための構造体
@@ -20,28 +21,29 @@ struct ResultData
 {
     float raceTime;           // 走行タイム
     float finalSpeed;         // 最終速度
-    float finalAcceleration;  // 最終加速力
+    float finalHp;
     // 他のステータスも追加
-    int crashCount;           // クラッシュ回数
 };
 
-class Result
+class Result : public BaseScene
 {
+public:
+    Result(ResultType resultType, const ResultData& resultData);
+    ~Result();
+    void Initialize() override;
+    void Terminate() override;
+    void Update() override;
+
+private:
+    void Draw();            // 描画処理
+    void UpdateMenu();      // メニュー選択更新
+    void DrawGameOver();    // ゲームオーバー画面
+    void DrawClear();       // クリア画面
+    void ExecuteMenu();     // メニュー実行
 private:
     ResultType type;
     ResultData data;
     int selectedMenu;  // 選択中のメニュー
 
-public:
-    Result(ResultType resultType, const ResultData& resultData);
-    ~Result();
-    void Initialize();
-    void Terminate();
-    void Update();
-    void Draw();
-
-private:
-    void UpdateMenu();  // メニュー選択処理
-    void DrawGameOver();
-    void DrawClear();
+    int displayTimer; // 表示用の時間
 };

@@ -35,6 +35,9 @@ void Stage::Initialize()
     GoalHeight = 50.0f;
     GoalDepth = 10.0f;
     isGoal = false;
+    bool wasInside = false;
+    float inZ = 0.0f;
+    float outZ = 0.0f;
 }
 
 void Stage::Terminate()
@@ -132,10 +135,6 @@ void Stage::Draw()
 bool Stage::CheckGoal(VECTOR playerPos)
 {
     if (isGoal) return true;
-    
-    static bool wasInside = false;
-    static float inZ = 0.0f;
-    static float outZ = 0.0f;
 
     float hw = GoalWidth / 2.0f;
     float hh = GoalHeight / 2.0f;
@@ -161,6 +160,7 @@ bool Stage::CheckGoal(VECTOR playerPos)
             isGoal = true;
             return true;
         }
+
     }
 
     wasInside = nowInside;

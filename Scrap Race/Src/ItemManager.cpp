@@ -1,10 +1,23 @@
 #include "ItemManager.h"
 
 
+ItemManager::ItemManager() : scrapSpawnTimer(0.0f),scrapSpawnInterval(NORMAL_SCRAP_SPAWN_INTERVAL),
+							 maxScraps(MAX_SCRAPS),normalScrapModel(-1),rareScrapModel(-1),lastWallHitState(false)
+{
+}
+
+ItemManager::~ItemManager()
+{
+	Terminate();
+}
+
 void ItemManager::Initialize()
 {
 	Scraps.clear();
 	scrapSpawnTimer = 0.0f;
+	scrapSpawnInterval = NORMAL_SCRAP_SPAWN_INTERVAL;
+	maxScraps = MAX_SCRAPS;
+	lastWallHitState = false;
 
 	//normalScrapModel = MV1LoadModel("Data/Model/Scrap_Normal.mv1");
 	//if (normalScrapModel == -1) printfDx("normalScrapモデル読み込み失敗！\n");
@@ -23,6 +36,7 @@ void ItemManager::Terminate()
 
 void ItemManager::Update(const VECTOR& playerPos, float playerAngle,float deltaTime,Player& player, int checkColModel)
 {
+	//タイマー更新
 	scrapSpawnTimer += deltaTime;
 
 	//プレイヤーの周りにスクラップ出現
@@ -31,12 +45,14 @@ void ItemManager::Update(const VECTOR& playerPos, float playerAngle,float deltaT
 		scrapSpawnTimer = 0.0f;
 	}
 
-	if (player.hitWall&&!lastWallHitState) {
+	// 壁に当たった瞬間にRareScrapを生成
+	bool nowWallHitState = player.hitWall;
 
+	if (nowWallHitState&&!lastWallHitState) {
 		SpawnRareScrap(playerPos, playerAngle, checkColModel, 3);
 	}
 
-	lastWallHitState = player.hitWall;
+	lastWallHitState = nowWallHitState;
 
 	//スクラップがある間更新
 	for (auto& scrap : Scraps) {
@@ -61,17 +77,13 @@ void ItemManager::Draw()
 
 void ItemManager::SpawnNormalScrap(const VECTOR& playerPos,int checkColModel)
 {
-	const int MAX_ATTEMPTS = 15;  // 試行回数を増やす
-	const float MIN_DISTANCE = 50.0f;   // Player から最低5m
-	const float MAX_DISTANCE = 100.0f;  // Player から最大20m
-
 	bool spawned = false;
 
-	for (int attempt = 0; attempt < MAX_ATTEMPTS && !spawned; attempt++)
+	for (int attempt = 0; attempt < NORMAL_MAX_SPAWN_ATTEMPTS && !spawned; attempt++)
 	{
 		// ランダムな位置を生成（Playerの周囲5~20m）
 		float angle = ((float)rand() / RAND_MAX) * DX_TWO_PI_F;
-		float distance = MIN_DISTANCE + ((float)rand() / RAND_MAX) * (MAX_DISTANCE - MIN_DISTANCE);
+		float distance = NORMAL_MIN_DISTANCE + ((float)rand() / RAND_MAX) * (NORMAL_MAX_DISTANCE - NORMAL_MIN_DISTANCE);
 
 		VECTOR offset = VGet(cosf(angle) * distance, 0.0f, sinf(angle) * distance);
 		VECTOR spawnPos = VAdd(playerPos, offset);
@@ -80,9 +92,9 @@ void ItemManager::SpawnNormalScrap(const VECTOR& playerPos,int checkColModel)
 		float groundY = GetGroundHeight(spawnPos, checkColModel);
 
 		// 地面が見つからない場合はスキップ
-		if (groundY < -50.0f || groundY > 50.0f) continue;
+		if (groundY < MIN_GROUND_HEIGHT || groundY > MAX_GROUND_HEIGHT) continue;
 
-		spawnPos.y = groundY + 0.5f;  // 地面から0.5m上
+		spawnPos.y = groundY + NORMAL_GROUND_OFFSET;  // 地面から0.5m上
 
 		// 壁に埋まっていないかチェック（小さめの半径でチェック）
 		if (IsPositionValid(spawnPos, checkColModel, 0.8f))
@@ -101,7 +113,7 @@ void ItemManager::SpawnNormalScrap(const VECTOR& playerPos,int checkColModel)
 
 	if (!spawned)
 	{
-		printfDx("Normal Scrap生成失敗（ % d回試行）\n", MAX_ATTEMPTS);
+		printfDx("Normal Scrap生成失敗（ % d回試行）\n", NORMAL_MAX_SPAWN_ATTEMPTS);
 	}
 }
 
@@ -117,10 +129,12 @@ void ItemManager::SpawnRareScrap(const VECTOR& playerPos, float playerAngle, int
 	{
 		// ランダムな角度で飛び散る
 		float spreadAngle = ((float)rand() / RAND_MAX - 0.5f) * DX_PI_F * 0.5f;  // ±45
-
 		float angle = atan2f(backward.x, backward.z) + spreadAngle;
-		VECTOR offset = VGet(sinf(angle) * 2.0f, 1.5f, cosf(angle) * 2.0f); //	2m後ろ、1.5m上に生成
 
+
+		VECTOR offset = VGet(sinf(angle) * RARE_SPAWN_DISTANCE,
+							RARE_SPAWN_HEIGHT,
+							cosf(angle) * RARE_SPAWN_DISTANCE); //	 RARE_SPAWN_DISTANCE分後ろ、RARE_SPAWN_HEIGHT分上に生成
 		VECTOR spawnPos = VAdd(playerPos, offset);
 
 		// 壁チェック
@@ -135,7 +149,7 @@ void ItemManager::SpawnRareScrap(const VECTOR& playerPos, float playerAngle, int
 			newScrap.Initialize(spawnPos, ScrapType::Rare, normalScrapModel, rareScrapModel);
 
 			// 飛ぶ速さの計算
-			float flyDistance = 3.0f + ((float)rand() / RAND_MAX) * 3.0f;
+			float flyDistance = 3.0f + ((float)rand() / RAND_MAX) * (RARE_FLY_MAX_DISTANCE - RARE_FLY_MIN_DISTANCE);
 			VECTOR flyDirection = VGet(sinf(angle), 0.3f, cosf(angle));
 			flyDirection = VNorm(flyDirection);
 
@@ -174,8 +188,8 @@ bool ItemManager::IsPositionValid(VECTOR position, int checkColModel, float chec
 	if (checkColModel == -1) return true;
 
 	// 横向きのカプセルで壁だけチェック
-	VECTOR capsuleTop = VAdd(position, VGet(0.0f, 1.0f, 0.0f));      // 上
-	VECTOR capsuleBottom = VAdd(position, VGet(0.0f, -0.2f, 0.0f));  // 少し下（地面に接触しないように）
+	VECTOR capsuleTop = VAdd(position, VGet(0.0f, SCRAP_CHECK_HEIGHT_TOP, 0.0f));      // 上
+	VECTOR capsuleBottom = VAdd(position, VGet(0.0f, WALL_NORMAL_THRESHOLD, 0.0f));  // 少し下（地面に接触しないように）
 
 	MV1_COLL_RESULT_POLY_DIM hitResult = MV1CollCheck_Capsule(
 		checkColModel, -1,
@@ -192,7 +206,7 @@ bool ItemManager::IsPositionValid(VECTOR position, int checkColModel, float chec
 		VECTOR normal = hitResult.Dim[i].Normal;
 
 		// 法線が横向き = 壁
-		if (fabsf(normal.y) < 0.5f)  // Y成分が小さい = 横向き
+		if (fabsf(normal.y) < WALL_NORMAL_THRESHOLD)  // Y成分が小さい = 横向き
 		{
 			hasWallCollision = true;
 			break;

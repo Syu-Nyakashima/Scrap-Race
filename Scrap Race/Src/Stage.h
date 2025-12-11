@@ -24,4 +24,7 @@ private:
 	float GoalHeight;
 	float GoalDepth;
 	bool isGoal;
+	bool wasInside;
+	float inZ;
+	float outZ;
 };

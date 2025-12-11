@@ -16,19 +16,18 @@ public:
     void Update() override;
 
 private:
-   
+    void Draw();            // 描画処理
+    void UpdateGame();      // ゲームロジック更新
     void DrawPlayerDebugUI();
+    void CheckGameEnd();    // ゲーム終了判定
 
-    float deltaTime = 0.0f;
-    float totalTime = 0.0f;
-    int oldTime = 0;
-    float GetDeltaTime() const { return deltaTime; }
-    float GetTotalTime() const { return totalTime; }
-
+private:
     // コンストラクタで初期化
     Player player;
     Stage stage;
     Camera camera;
     ItemManager itemManager;
-    
+    float deltaTime = 0.0f;
+    float totalTime = 0.0f;
+    int oldTime = 0;
 };
