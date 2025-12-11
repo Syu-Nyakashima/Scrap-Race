@@ -1,1 +1,49 @@
 #pragma once
+#include "BaseScene.h"
+
+enum ResultType
+{
+    RESULT_GAMEOVER,
+    RESULT_CLEAR
+};
+
+enum ResultSelect
+{
+    RESULT_RETRY,         // リトライ(同じステージ)
+    RESULT_STAGE_SELECT,  //ステージセレクト
+    RESULT_MENU,          // メニュー選択
+    RESULT_TITLE,         // タイトルに戻る
+    RESULT_MAX
+};
+
+// リザルト情報を渡すための構造体
+struct ResultData
+{
+    float raceTime;           // 走行タイム
+    float finalSpeed;         // 最終速度
+    float finalHp;
+    // 他のステータスも追加
+};
+
+class Result : public BaseScene
+{
+public:
+    Result(ResultType resultType, const ResultData& resultData);
+    ~Result();
+    void Initialize() override;
+    void Terminate() override;
+    void Update() override;
+
+private:
+    void Draw();            // 描画処理
+    void UpdateMenu();      // メニュー選択更新
+    void DrawGameOver();    // ゲームオーバー画面
+    void DrawClear();       // クリア画面
+    void ExecuteMenu();     // メニュー実行
+private:
+    ResultType type;
+    ResultData data;
+    int selectedMenu;  // 選択中のメニュー
+
+    int displayTimer; // 表示用の時間
+};

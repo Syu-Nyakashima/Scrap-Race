@@ -1,4 +1,5 @@
 #include "DxLib.h"
+#include "SceneManager.h"
 #include "PlayScene.h"
 #include "imgui.h"
 #include "imgui_impl_win32.h"
@@ -86,16 +87,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     SetMouseDispFlag(TRUE);        // 常にマウス表示
 
     // --- シーン開始 ---
-
-    PlayScene scene;
+    SceneManager::Initialize();
+    SceneManager::ChangeScene(new PlayScene());
     void InitImGui();
     void TerminateImGui();
-    scene.Initialize(); // シーン初期化
     InitImGui();
 
     while (ProcessMessage() == 0 && CheckHitKey(KEY_INPUT_ESCAPE) == 0)
     {
-        scene.Update();
+        SceneManager::Update();
     }
 
     TerminateImGui();

@@ -37,6 +37,12 @@
     <Filter Include="ソース ファイル\Scene\Result">
       <UniqueIdentifier>{a9ea75ec-2c06-468a-840b-9a71c4fac97e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\Scene\Manager">
+      <UniqueIdentifier>{4a6dd21b-fa1e-4d5f-805f-cb2d6957adce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Scene\Base">
+      <UniqueIdentifier>{060f5360-c8f0-46ae-a04d-793b2c80e906}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Main.cpp">
@@ -80,6 +86,18 @@
     </ClCompile>
     <ClCompile Include="Src\ItemManager.cpp">
       <Filter>ソース ファイル\Scene\Play</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Result.cpp">
+      <Filter>ソース ファイル\Scene\Result</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SceneManager.cpp">
+      <Filter>ソース ファイル\Scene\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\MenuScene.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\BaseScene.cpp">
+      <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -127,6 +145,15 @@
     </ClInclude>
     <ClInclude Include="Src\Result.h">
       <Filter>ソース ファイル\Scene\Result</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\SceneManager.h">
+      <Filter>ソース ファイル\Scene\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\BaseScene.h">
+      <Filter>ソース ファイル\Scene\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\MenuScene.h">
+      <Filter>ソース ファイル\Scene\Menu</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
