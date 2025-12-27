@@ -2,6 +2,7 @@
 #include "SceneManager.h"
 #include "Result.h"
 #include "DxLib.h"
+
 #include <windows.h>
 #include "imgui.h"
 #include "imgui_impl_win32.h"
@@ -10,10 +11,18 @@
 PlayScene::PlayScene() : player(stage)
 {
     //オブジェクトの構築、メンバ変数の初期化
+     // 敵を3台生成(例)
+    enemies.push_back(new EnemyCPU(stage, AIDifficulty::Easy));
+    enemies.push_back(new EnemyCPU(stage, AIDifficulty::Normal));
+    enemies.push_back(new EnemyCPU(stage, AIDifficulty::Hard));
 }
 
 PlayScene::~PlayScene()
-{   
+{
+    for (auto* enemy : enemies) {
+        delete enemy;
+    }
+    enemies.clear();
 }
 
 void PlayScene::Initialize()
@@ -23,8 +32,43 @@ void PlayScene::Initialize()
     camera.Initialize();
     itemManager.Initialize();
 
+    // 敵の初期化
+    for (int i = 0; i < enemies.size(); i++)
+    {
+        enemies[i]->Initialize();
+
+        // 初期位置をずらす
+        enemies[i]->pos = VGet(-5.0f * (i + 1), 10.0f, -10.0f);
+
+        // ウェイポイント設定
+        std::vector<VECTOR> waypoints = {
+            VGet(0.0f, 0.0f, 50.0f),
+            VGet(30.0f, 0.0f, 80.0f),
+            VGet(60.0f, 0.0f, 50.0f),
+            VGet(30.0f, 0.0f, 20.0f)
+        };
+        enemies[i]->SetWaypoints(waypoints);
+    }
+
+    // Car配列を構築(PlaySceneで管理)
+    BuildCarList();
+
     oldTime = GetNowCount();
     totalTime = 0.0f;
+}
+
+//全Car情報リスト生成
+void PlayScene::BuildCarList()
+{
+    allCars.clear();
+
+    // リストの最初にプレイヤーを追加
+    allCars.push_back(&player);
+
+    // 敵を追加
+    for (auto* enemy : enemies) {
+        allCars.push_back(enemy);
+    }
 }
 
 void PlayScene::Terminate() 
@@ -32,6 +76,12 @@ void PlayScene::Terminate()
     stage.Terminate();
     camera.Terminate();
     itemManager.Terminate();
+
+    for (auto* enemy : enemies) {
+        enemy->Terminate();
+    }
+
+    allCars.clear();
 }
 
 //-------------------------------------------------------------
@@ -63,11 +113,19 @@ void PlayScene::Draw()
     SetBackgroundColor(140, 140, 140);
     ClearDrawScreen();
 
-    //StageのUpdate
-    stage.Draw();
-
     //Draw処理
+    stage.Draw();
     player.Draw();
+
+    // 敵描画
+    for (auto* enemy : enemies)
+    {
+        if (enemy->IsAlive())
+        {
+            enemy->Draw();
+        }
+    }
+
     itemManager.Draw();
 
     //UI
@@ -94,9 +152,31 @@ void PlayScene::Draw()
 
 void PlayScene::UpdateGame()
 {
+    //プレイヤー更新
     player.Update(deltaTime);
+    //敵更新
+    for (auto* enemy : enemies) 
+    {
+        if (enemy->IsAlive()) 
+        {
+            //更新
+            enemy->Update(deltaTime);
+
+            // 敵に最も近いスクラップを通知
+            VECTOR nearestScrap;
+            if (itemManager.FindNearestScrap(enemy->GetPosition(), 20.0f, nearestScrap))
+            {
+                enemy->SetNearestScrap(nearestScrap);
+            }
+            else
+            {
+                enemy->ClearNearestScrap();
+            }
+        }
+    }
+
     camera.Update(player, deltaTime);
-    itemManager.Update(player.pos, player.angle, deltaTime, player, stage.GetCheckColModel());
+    itemManager.Update(deltaTime, stage.GetCheckColModel(), allCars);
     stage.Update();
 }
 

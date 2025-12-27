@@ -99,12 +99,12 @@ void Scrap::Draw()
 }
 
 //scrapŽæ“¾ŠÖ”
-void Scrap::CheckCollision(Player& player)
+void Scrap::CheckCollision(CarBase& car)
 {
 	if (invincibleTime > 0.0f) return;
 
-	float dist = VSize(VSub(pos, player.pos));
-	if (dist < radius + player.radius) {
+	float dist = VSize(VSub(pos, car.pos));
+	if (dist < radius + car.capsuleRadius) {
 		collected = true;
 		player.Heal(healAmount);
 	}

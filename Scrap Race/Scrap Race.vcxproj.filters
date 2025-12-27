@@ -28,9 +28,6 @@
     <Filter Include="ソース ファイル\Main">
       <UniqueIdentifier>{20a4075a-d2dc-4631-98a2-654e20056c2a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソース ファイル\Player">
-      <UniqueIdentifier>{93cb5e66-2a0b-4b86-9f16-51711602c2a4}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ソース ファイル\Imgui">
       <UniqueIdentifier>{b3317748-a6a2-4065-8118-ccdf551d0468}</UniqueIdentifier>
     </Filter>
@@ -43,6 +40,18 @@
     <Filter Include="ソース ファイル\Scene\Base">
       <UniqueIdentifier>{060f5360-c8f0-46ae-a04d-793b2c80e906}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\RaceCar">
+      <UniqueIdentifier>{84140f4f-5f52-4bd2-9ad5-ec7efbb5857f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\RaceCar\Player">
+      <UniqueIdentifier>{93cb5e66-2a0b-4b86-9f16-51711602c2a4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\RaceCar\Enemy">
+      <UniqueIdentifier>{2f3e5902-6ad4-492a-8282-8649ae283aa6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\RaceCar\Base">
+      <UniqueIdentifier>{0bc66624-2214-4ba5-86f0-b52d7793e676}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Main.cpp">
@@ -52,7 +61,7 @@
       <Filter>ソース ファイル\Scene\Play</Filter>
     </ClCompile>
     <ClCompile Include="Src\Player.cpp">
-      <Filter>ソース ファイル\Player</Filter>
+      <Filter>ソース ファイル\RaceCar\Player</Filter>
     </ClCompile>
     <ClCompile Include="Imgui\imgui.cpp">
       <Filter>ソース ファイル\Imgui</Filter>
@@ -76,7 +85,7 @@
       <Filter>ソース ファイル\Imgui</Filter>
     </ClCompile>
     <ClCompile Include="Src\Camera.cpp">
-      <Filter>ソース ファイル\Player</Filter>
+      <Filter>ソース ファイル\RaceCar\Player</Filter>
     </ClCompile>
     <ClCompile Include="Src\Stage.cpp">
       <Filter>ソース ファイル\Scene\Play</Filter>
@@ -93,11 +102,17 @@
     <ClCompile Include="Src\SceneManager.cpp">
       <Filter>ソース ファイル\Scene\Manager</Filter>
     </ClCompile>
+    <ClCompile Include="Src\BaseScene.cpp">
+      <Filter>ソース ファイル\Scene\Base</Filter>
+    </ClCompile>
     <ClCompile Include="Src\MenuScene.cpp">
+      <Filter>ソース ファイル\Scene\Menu</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\EnemyCPU.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Src\BaseScene.cpp">
-      <Filter>ソース ファイル</Filter>
+    <ClCompile Include="Src\CarBase.cpp">
+      <Filter>ソース ファイル\RaceCar\Base</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -105,7 +120,7 @@
       <Filter>ソース ファイル\Scene\Play</Filter>
     </ClInclude>
     <ClInclude Include="Src\Player.h">
-      <Filter>ソース ファイル\Player</Filter>
+      <Filter>ソース ファイル\RaceCar\Player</Filter>
     </ClInclude>
     <ClInclude Include="Imgui\imconfig.h">
       <Filter>ソース ファイル\Imgui</Filter>
@@ -132,7 +147,7 @@
       <Filter>ソース ファイル\Imgui</Filter>
     </ClInclude>
     <ClInclude Include="Src\Camera.h">
-      <Filter>ソース ファイル\Player</Filter>
+      <Filter>ソース ファイル\RaceCar\Player</Filter>
     </ClInclude>
     <ClInclude Include="Src\Stage.h">
       <Filter>ソース ファイル\Scene\Play</Filter>
@@ -154,6 +169,12 @@
     </ClInclude>
     <ClInclude Include="Src\MenuScene.h">
       <Filter>ソース ファイル\Scene\Menu</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\CarBase.h">
+      <Filter>ソース ファイル\RaceCar\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\EnemyCPU.h">
+      <Filter>ソース ファイル\RaceCar\Enemy</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

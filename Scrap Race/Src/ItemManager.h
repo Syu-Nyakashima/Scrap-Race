@@ -2,7 +2,7 @@
 #include "DxLib.h"
 #include <vector>
 #include "Scrap.h"
-#include "Player.h"
+#include "CarBase.h"
 
 class ItemManager {
 public:
@@ -12,8 +12,11 @@ public:
 	void Initialize();
 	void Terminate();
 
-	void Update(const VECTOR& playerPos, float playerAngle, float deltaTime,Player& player,int checkColModel);
+    void Update(float deltaTime, int checkColModel, std::vector<CarBase*>& cars);
 	void Draw();
+
+    // 最も近いスクラップを検索(敵AI用)
+    bool FindNearestScrap(const VECTOR& pos, float searchRadius, VECTOR& outScrapPos);
 
 private:
 	//Scrap関数
@@ -24,19 +27,16 @@ private:
 	float GetGroundHeight(VECTOR position, int checkColModel);
 	bool IsPositionValid(VECTOR position, int checkColModel, float checkRadius);
 
-	//内部処理
-	void UpdateScraps(float deltaTime, Player& player, int checkColModel);
-	void RemoveExpiredScraps();
-	void RemoveOldestScrap();
-
 	//変数
 	std::vector<Scrap> Scraps;
+
+	int normalScrapModel = -1;
+	int rareScrapModel = -1;
+
 	float scrapSpawnTimer;
 	float scrapSpawnInterval;
 	size_t maxScraps;// 最大出現数
 
-	int normalScrapModel = -1;
-	int rareScrapModel = -1;
 
 	bool lastWallHitState = false;
 

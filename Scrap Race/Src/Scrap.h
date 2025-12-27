@@ -1,7 +1,8 @@
 #pragma once
 #include "DxLib.h"
-#include <vector>
 #include "Player.h"
+
+class CarBase;
 
 enum class ScrapType {
 	Normal,
@@ -15,8 +16,9 @@ public:
 
 	void Update(float deltaTime,int checkColModel);
 	void Draw();
+
 	bool IsExpired() const { return lifetime <= 0.0f || collected; }
-	void CheckCollision(Player& player);
+	void CheckCollision(std::vector<CarBase*>& cars);
 	void SetVelocity(const VECTOR& velocity);
 	void SetInvincibleTime(float time);
 private:

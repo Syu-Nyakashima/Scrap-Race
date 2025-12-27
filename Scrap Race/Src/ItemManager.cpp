@@ -2,7 +2,7 @@
 
 
 ItemManager::ItemManager() : scrapSpawnTimer(0.0f),scrapSpawnInterval(NORMAL_SCRAP_SPAWN_INTERVAL),
-							 maxScraps(MAX_SCRAPS),normalScrapModel(-1),rareScrapModel(-1),lastWallHitState(false)
+							 maxScraps(MAX_SCRAPS),normalScrapModel(-1),rareScrapModel(-1)
 {
 }
 
@@ -17,7 +17,6 @@ void ItemManager::Initialize()
 	scrapSpawnTimer = 0.0f;
 	scrapSpawnInterval = NORMAL_SCRAP_SPAWN_INTERVAL;
 	maxScraps = MAX_SCRAPS;
-	lastWallHitState = false;
 
 	//normalScrapModel = MV1LoadModel("Data/Model/Scrap_Normal.mv1");
 	//if (normalScrapModel == -1) printfDx("normalScrapモデル読み込み失敗！\n");
@@ -36,14 +35,7 @@ void ItemManager::Terminate()
 
 void ItemManager::Update(const VECTOR& playerPos, float playerAngle,float deltaTime,Player& player, int checkColModel)
 {
-	//タイマー更新
-	scrapSpawnTimer += deltaTime;
-
-	//プレイヤーの周りにスクラップ出現
-	if (scrapSpawnTimer >= scrapSpawnInterval) {
-		SpawnNormalScrap(playerPos, checkColModel);
-		scrapSpawnTimer = 0.0f;
-	}
+	
 
 	// 壁に当たった瞬間にRareScrapを生成
 	bool nowWallHitState = player.hitWall;
@@ -54,11 +46,7 @@ void ItemManager::Update(const VECTOR& playerPos, float playerAngle,float deltaT
 
 	lastWallHitState = nowWallHitState;
 
-	//スクラップがある間更新
-	for (auto& scrap : Scraps) {
-		scrap.Update(deltaTime,checkColModel);
-		scrap.CheckCollision(player);
-	}
+
 
 	//時間経過、または取得で消滅
 	Scraps.erase(
@@ -68,11 +56,45 @@ void ItemManager::Update(const VECTOR& playerPos, float playerAngle,float deltaT
 	);
 }
 
+void ItemManager::Update(float deltaTime, int checkColModel, std::vector<CarBase*>& cars)
+{
+	if (cars.empty()) return;
+
+	//タイマー更新
+	scrapSpawnTimer += deltaTime;
+
+	//プレイヤーの周りにスクラップ出現
+	if (scrapSpawnTimer >= scrapSpawnInterval) {
+
+		SpawnNormalScrap(cars[0]->GetPosition(), checkColModel);
+		scrapSpawnTimer = 0.0f;
+	}
+
+	//スクラップがある間更新
+	for (auto& scrap : Scraps) {
+		scrap.Update(deltaTime, checkColModel);
+		for (auto* car : cars)
+		{
+			if (car != nullptr && car->IsAlive())
+			{
+				scrap.CheckCollision(*car);
+			}
+		}
+	}
+
+
+}
+
 void ItemManager::Draw()
 {
 	for (auto& scrap : Scraps) {
 		scrap.Draw();
 	}
+}
+
+bool ItemManager::FindNearestScrap(const VECTOR& pos, float searchRadius, VECTOR& outScrapPos)
+{
+	return false;
 }
 
 void ItemManager::SpawnNormalScrap(const VECTOR& playerPos,int checkColModel)

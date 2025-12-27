@@ -4,6 +4,8 @@
 #include "Camera.h"
 #include "Stage.h"
 #include "ItemManager.h"
+#include "EnemyCPU.h"
+#include <vector>
 
 class PlayScene : public BaseScene
 {
@@ -17,17 +19,25 @@ public:
 
 private:
     void Draw();            // 描画処理
+    void BuildCarList();    // Car配列を構築
     void UpdateGame();      // ゲームロジック更新
     void DrawPlayerDebugUI();
     void CheckGameEnd();    // ゲーム終了判定
 
 private:
     // コンストラクタで初期化
+    // ゲームオブジェクト
     Player player;
     Stage stage;
     Camera camera;
     ItemManager itemManager;
+
+    // 時間管理
     float deltaTime = 0.0f;
     float totalTime = 0.0f;
     int oldTime = 0;
+
+    // リスト
+    std::vector<EnemyCPU*> enemies;     //敵リスト
+    std::vector<CarBase*> allCars;      //全Car管理
 };
