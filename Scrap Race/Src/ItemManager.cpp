@@ -33,29 +33,6 @@ void ItemManager::Terminate()
 	Scraps.clear();
 }
 
-void ItemManager::Update(const VECTOR& playerPos, float playerAngle,float deltaTime,Player& player, int checkColModel)
-{
-	
-
-	// 壁に当たった瞬間にRareScrapを生成
-	bool nowWallHitState = player.hitWall;
-
-	if (nowWallHitState&&!lastWallHitState) {
-		SpawnRareScrap(playerPos, playerAngle, checkColModel, 3);
-	}
-
-	lastWallHitState = nowWallHitState;
-
-
-
-	//時間経過、または取得で消滅
-	Scraps.erase(
-		std::remove_if(Scraps.begin(), Scraps.end(),
-			[](const Scrap& s) { return s.IsExpired(); }),
-		Scraps.end()
-	);
-}
-
 void ItemManager::Update(float deltaTime, int checkColModel, std::vector<CarBase*>& cars)
 {
 	if (cars.empty()) return;
@@ -66,9 +43,15 @@ void ItemManager::Update(float deltaTime, int checkColModel, std::vector<CarBase
 	//プレイヤーの周りにスクラップ出現
 	if (scrapSpawnTimer >= scrapSpawnInterval) {
 
-		SpawnNormalScrap(cars[0]->GetPosition(), checkColModel);
+		for (int i = 0; i < cars.size(); i++) {
+			SpawnNormalScrap(cars[i]->GetPosition(), checkColModel);
+		}
+	
 		scrapSpawnTimer = 0.0f;
 	}
+
+	// 壁衝突でRareスクラップ生成
+	CheckCarWallHits(cars, checkColModel);
 
 	//スクラップがある間更新
 	for (auto& scrap : Scraps) {
@@ -82,7 +65,28 @@ void ItemManager::Update(float deltaTime, int checkColModel, std::vector<CarBase
 		}
 	}
 
+	//時間経過、または取得で消滅
+	Scraps.erase(
+		std::remove_if(Scraps.begin(), Scraps.end(),
+			[](const Scrap& s) { return s.IsExpired(); }),
+		Scraps.end()
+	);
+}
 
+void ItemManager::CheckAllCollisions(std::vector<CarBase*>& cars)
+{
+}
+
+void ItemManager::CheckCarWallHits(std::vector<CarBase*>& cars, int checkColModel)
+{
+	for (auto* car : cars)
+	{
+		if (car != nullptr && car->IsAlive() && car->hitWall && !car->wasHitWall)
+		{
+			// 壁に当たった瞬間にRareスクラップ生成
+			SpawnRareScrap(car->GetPosition(), car->GetAngle(), checkColModel, 3);
+		}
+	}
 }
 
 void ItemManager::Draw()
@@ -94,7 +98,23 @@ void ItemManager::Draw()
 
 bool ItemManager::FindNearestScrap(const VECTOR& pos, float searchRadius, VECTOR& outScrapPos)
 {
-	return false;
+	float nearestDist = searchRadius;
+	bool found = false;
+
+	for (const auto& scrap : Scraps)
+	{
+		if (scrap.IsCollected()) continue;
+
+		float dist = VSize(VSub(scrap.GetPosition(), pos));
+		if (dist < nearestDist)
+		{
+			nearestDist = dist;
+			outScrapPos = scrap.GetPosition();
+			found = true;
+		}
+	}
+
+	return found;
 }
 
 void ItemManager::SpawnNormalScrap(const VECTOR& playerPos,int checkColModel)

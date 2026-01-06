@@ -1,4 +1,5 @@
 #include "Scrap.h"
+#include "CarBase.h"
 
 namespace {
 	// 物理パラメータ
@@ -11,11 +12,23 @@ void Scrap::Initialize(const VECTOR& position, ScrapType scraptype, int normalMo
 	pos = position;
 	lifetime=10.0f;
 	type = scraptype;
+	collected = false;
+	invincibleTime = 0.0f;
 
 	//type別回復量変化
 	switch (type) {
-	case ScrapType::Normal: healAmount = 5.0f; break;
-	case ScrapType::Rare:   healAmount = 10.0f; break;
+	case ScrapType::Normal: 
+		healAmount = 5.0f; 
+		spdMaxBoost = 5.0f;
+		spdUpBoost = 0.05f;
+		spdDownBoost = 0.05f;
+		break;
+	case ScrapType::Rare:
+		healAmount = 15.0f;
+		spdMaxBoost = 10.0f;
+		spdUpBoost = 0.1f;
+		spdDownBoost = 0.1f;
+		break;
 	}
 
 	//type別モデル変化
@@ -102,11 +115,14 @@ void Scrap::Draw()
 void Scrap::CheckCollision(CarBase& car)
 {
 	if (invincibleTime > 0.0f) return;
+	if (collected) return;
 
 	float dist = VSize(VSub(pos, car.pos));
-	if (dist < radius + car.capsuleRadius) {
+	if (dist < radius + car.capsuleRadius) 
+	{
 		collected = true;
-		player.Heal(healAmount);
+		car.Heal(healAmount);
+		car.BoostStatus(spdMaxBoost, spdUpBoost, spdDownBoost);
 	}
 }
 

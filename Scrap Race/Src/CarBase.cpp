@@ -68,14 +68,13 @@ void CarBase::Heal(float amount)
         Hp = 100.0f;
     }
 }
-/*
+
 void CarBase::BoostStatus(float spdMaxBoost, float spdUpBoost, float spdDownBoost)
 {
     SpdMax += spdMaxBoost;
     SpdUp += spdUpBoost;
     SpdDown += spdDownBoost;
 
-    // 上限設定(必要なら)
     if (SpdMax > 250.0f) SpdMax = 250.0f;
     if (SpdUp > 2.0f) SpdUp = 2.0f;
     if (SpdDown > 2.0f) SpdDown = 2.0f;
@@ -83,7 +82,6 @@ void CarBase::BoostStatus(float spdMaxBoost, float spdUpBoost, float spdDownBoos
 
 void CarBase::DrainStatusOverTime(float delta)
 {
-    // ステータス減少(下限あり)
     SpdMax -= STATUS_DRAIN_SPD_MAX * delta;
     if (SpdMax < MIN_SPD_MAX) SpdMax = MIN_SPD_MAX;
 
@@ -93,7 +91,7 @@ void CarBase::DrainStatusOverTime(float delta)
     SpdDown -= STATUS_DRAIN_SPD_DOWN * delta;
     if (SpdDown < MIN_SPD_DOWN) SpdDown = MIN_SPD_DOWN;
 }
-*/
+
 void CarBase::UpdatePhysics(float delta)
 {
     // 角度から進行方向を計算
@@ -176,6 +174,8 @@ bool CarBase::CheckGroundPoint(int CheckColModel, VECTOR checkPos, float& outGro
         outGroundY = HitPoly.HitPosition.y;
         return true;
     }
+
+    return false;
 }
 
 void CarBase::ApplyGroundPhysics(float groundY, float delta)
@@ -238,7 +238,6 @@ void CarBase::CheckWall(int CheckColModel, float delta)
 
     //壁衝突ダメージ
     ApplyWallDamage();
-
     wasHitWall = hitWall;
 }
 

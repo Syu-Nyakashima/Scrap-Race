@@ -52,7 +52,8 @@ void Player::Update(float delta)
     if (Hp <= 0.0f) {
         Hp = 0.0f;
     }
-
+    //時間経過でステータス減少
+    DrainStatusOverTime(delta);
     //入力処理
     UpdateInput(delta);
     //物理演算

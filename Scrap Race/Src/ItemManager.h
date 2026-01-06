@@ -1,8 +1,8 @@
 #pragma once
 #include "DxLib.h"
-#include <vector>
 #include "Scrap.h"
 #include "CarBase.h"
+#include <vector>
 
 class ItemManager {
 public:
@@ -20,10 +20,12 @@ public:
 
 private:
 	//Scrapä÷êî
-	void SpawnNormalScrap(const VECTOR& playerPos, int checkColModel);
-	void SpawnRareScrap(const VECTOR& playerPos, float playerAngle, int checkColModel, int count);
+	void SpawnNormalScrap(const VECTOR& centerPos, int checkColModel);
+	void SpawnRareScrap(const VECTOR& centerPos, float angle, int checkColModel, int count);
 
 	//è’ìÀîªíË
+    void CheckAllCollisions(std::vector<CarBase*>& cars);
+    void CheckCarWallHits(std::vector<CarBase*>& cars,int checkColModel);
 	float GetGroundHeight(VECTOR position, int checkColModel);
 	bool IsPositionValid(VECTOR position, int checkColModel, float checkRadius);
 
@@ -36,9 +38,6 @@ private:
 	float scrapSpawnTimer;
 	float scrapSpawnInterval;
 	size_t maxScraps;// ç≈ëÂèoåªêî
-
-
-	bool lastWallHitState = false;
 
 	//íËêî
     // NormalScrapê∂ê¨

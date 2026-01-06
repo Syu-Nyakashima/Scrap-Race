@@ -20,7 +20,7 @@ enum class AIType {
 class EnemyCPU : public CarBase
 {
 public:
-	EnemyCPU(Stage& stageRef, AIDifficulty diff /*AIType type*/);
+	EnemyCPU(Stage& stageRef, AIDifficulty diff, AIType type);
 	~EnemyCPU() override;
 
 	void Initialize() override;
@@ -52,6 +52,11 @@ private:
     float CalculateTargetSpeed() const;
     VECTOR GetCurrentTarget() const;
     float GetAngleToTarget(VECTOR target) const;
+
+    //エラー挙動
+    void UpdateErrorBehavior(float delta);
+    void TriggerRandomError();
+    void ApplyErrorToInput(float& steerAmount, float& targetSpeed);
 
 private:
     // AI設定
@@ -88,7 +93,7 @@ private:
 
     // 定数
     static constexpr float THINK_INTERVAL = 0.1f;      // 思考更新間隔
-    static constexpr float WAYPOINT_RADIUS = 5.0f;     // ウェイポイント到達判定
+    static constexpr float WAYPOINT_RADIUS = 45.0f;     // ウェイポイント到達判定
     static constexpr float STUCK_THRESHOLD = 1.0f;     // スタック判定距離
     static constexpr float STUCK_TIME = 2.0f;          // スタック判定時間
     static constexpr float LOW_HP_THRESHOLD = 30.0f;   // HP低下判定

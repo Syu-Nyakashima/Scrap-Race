@@ -1,7 +1,7 @@
 #include "EnemyCPU.h"
 
-EnemyCPU::EnemyCPU(Stage& stageRef, AIDifficulty diff/*, AIType type*/)
-	: CarBase(stageRef), difficulty(diff),/* type(type),*/
+EnemyCPU::EnemyCPU(Stage& stageRef, AIDifficulty diff, AIType type)
+	: CarBase(stageRef), difficulty(diff), type(type),
     currentWaypointIndex(0), thinkTimer(0.0f), stuckTimer(0.0f),
     isStuck(false), hasNearestScrap(false), scrapSearchRadius(SCRAP_SEARCH_RADIUS),
     errorTimer(0.0f), isInError(false)
@@ -48,12 +48,12 @@ EnemyCPU::~EnemyCPU()
 
 void EnemyCPU::Initialize()
 {
-    CarBase::Initialize();
+    CarBase::Initialize();  
 
     //ModelHandle = MV1LoadModel();
     if (ModelHandle == -1) {
         printfDx("敵モデル読み込み失敗！プレイヤーモデル使用\n");
-        ModelHandle = MV1LoadModel("Data/Model/RaceCarModel.mv1");
+        ModelHandle = MV1LoadModel("Data/Model/free_car_1.mv1");
     }
 
     currentWaypointIndex = 0;
@@ -81,13 +81,13 @@ void EnemyCPU::Update(float delta)
     }
 
     //ステータス減少
-    //DrainStatusOverTime(delta);
+    DrainStatusOverTime(delta);
 
     // AI思考
     ThinkAI(delta);
 
     //エラー挙動
-    //UpdateErrorBehavior(delta);
+    UpdateErrorBehavior(delta);
 
     // 入力処理(AIが決定)
     UpdateInput(delta);
@@ -104,6 +104,32 @@ void EnemyCPU::Update(float delta)
 
 void EnemyCPU::SetTypeParameters()
 {
+    switch (type)
+    {
+    case AIType::Attack:
+        aggressiveness = 0.9f;      // 壁を気にしない
+        scrapPriority = 0.3f;       // スクラップ優先度低
+        corneringSkill *= 0.8f;     // コーナリング下手
+        break;
+
+    case AIType::Defense:
+        aggressiveness = 0.2f;      // 壁を避ける
+        scrapPriority = 0.5f;       // スクラップ優先度中
+        corneringSkill *= 1.2f;     // コーナリング上手
+        break;
+
+    case AIType::Balance:
+        aggressiveness = 0.5f;
+        scrapPriority = 0.5f;
+        // デフォルト値のまま
+        break;
+
+    case AIType::ScrapHunter:
+        aggressiveness = 0.6f;
+        scrapPriority = 0.9f;       // スクラップ最優先
+        scrapSearchRadius = 30.0f;  // 探索範囲拡大
+        break;
+    }
 }
 
 void EnemyCPU::ThinkAI(float delta)
@@ -173,11 +199,11 @@ VECTOR EnemyCPU::GetCurrentTarget() const
     if (ShouldSearchScrap() && hasNearestScrap)
     {
         //性格による優先度判定
-        //float randValue = (float)rand() / RAND_MAX;
-        //if(randValue < scrapPriority)
-        //{
-            return nearestScrapPos;
-        //}
+        float randValue = (float)rand() / RAND_MAX;
+        if(randValue < scrapPriority)
+        {
+          return nearestScrapPos;
+        }
     }
 
     // 通常はウェイポイント
@@ -209,14 +235,12 @@ void EnemyCPU::SteerToTarget(VECTOR targetPos, float delta)
     float steerAmount = angleDiff * corneringSkill;
 
     // エラー状態ならハンドル操作がおかしくなる
-    /*
     if (isInError)
     {
         // ランダムに左右に振れる
         float errorSteer = ((float)rand() / RAND_MAX - 0.5f) * 90.0f;
         steerAmount += errorSteer;
     }
-    */
 
     steerAmount = fmaxf(-ROTATION_SPEED * delta, fminf(ROTATION_SPEED * delta, steerAmount * delta));
 
@@ -230,12 +254,56 @@ float EnemyCPU::GetAngleToTarget(VECTOR target) const
     return targetAngle;
 }
 
+void EnemyCPU::UpdateErrorBehavior(float delta)
+{
+    // エラー状態中の処理
+    if (isInError)
+    {
+        errorTimer -= delta;
+        if (errorTimer <= 0.0f)
+        {
+            isInError = false;
+        }
+        return;
+    }
+
+    // 定期的にエラー判定
+    errorTimer += delta;
+    if (errorTimer >= ERROR_CHECK_INTERVAL)
+    {
+        errorTimer = 0.0f;
+        TriggerRandomError();
+    }
+}
+
+void EnemyCPU::TriggerRandomError()
+{
+    float randValue = (float)rand() / RAND_MAX;
+
+    // 難易度によってエラー挙動のしやすさを変える
+    if (randValue < errorRate)
+    {
+        isInError = true;
+        errorTimer = errorDuration;
+
+        printfDx("Enemy Error! (%.1f秒)\n", errorDuration);
+    }
+}
+
+void EnemyCPU::ApplyErrorToInput(float& steerAmount, float& targetSpeed)
+{
+}
+
 void EnemyCPU::HandleAcceleration(float delta)
 {
     float targetSpeed = CalculateTargetSpeed();
 
     //エラー状態
-    
+    if (isInError)
+    {
+        // アクセルとブレーキを間違える
+        targetSpeed *= 0.5f + ((float)rand() / RAND_MAX) * 0.5f;
+    }
 
     // 目標速度に向けて加減速
     if (moveSpeed < targetSpeed)
@@ -262,17 +330,20 @@ float EnemyCPU::CalculateTargetSpeed() const
     float angleToTarget = GetAngleToTarget(target);
     float angleDiff = fabsf(angleToTarget - angle);
 
+    // 性格による速度調整
+    float baseSpeed = SpdMax * (1.0f - aggressiveness * 0.3f);
+
     // 角度差が大きいほど減速
     if (angleDiff > 45.0f)
     {
-        return SpdMax * 0.5f;
+        return baseSpeed * 0.5f;
     }
     else if (angleDiff > 20.0f)
     {
-        return SpdMax * 0.7f;
+        return baseSpeed * 0.7f;
     }
 
-    return SpdMax;
+    return baseSpeed;  
 }
 
 void EnemyCPU::CheckStuckState(float delta)

@@ -14,6 +14,7 @@ public:
 
     // 回復処理
     void Heal(float amount);
+    void BoostStatus(float spdMaxBoost, float spdUpBoost, float spdDownBoost);
 
     // ゲッター
     VECTOR GetPosition() const { return pos; }
@@ -22,6 +23,9 @@ public:
     bool IsAlive() const { return Hp > 0.0f; }
 
 protected:
+    //ステータス変動
+    void DrainStatusOverTime(float delta);
+
     // 共通の物理演算・衝突判定
     void UpdatePhysics(float delta);
     void UpdateCollision(float delta);
@@ -53,6 +57,16 @@ public:
     float SpdDown;
     float Hp;
 
+    // ステータス下限
+    static constexpr float MIN_SPD_MAX = 50.0f;
+    static constexpr float MIN_SPD_UP = 0.3f;
+    static constexpr float MIN_SPD_DOWN = 0.3f;
+
+    // ステータス減少率
+    static constexpr float STATUS_DRAIN_SPD_MAX = 0.02f;
+    static constexpr float STATUS_DRAIN_SPD_UP = 0.001f;
+    static constexpr float STATUS_DRAIN_SPD_DOWN = 0.001f;
+
     // 当たり判定パラメータ
     float capsuleRadius = 5.0f;
     float capsuleHeight = 3.0f;
@@ -75,6 +89,5 @@ protected:
     static constexpr float DAMAGE_MULTIPLIER = 0.1f;
     static constexpr float FOOT_OFFSET_RATIO = 0.5f;
     static constexpr int MAX_WALL_ITERATIONS = 3;
-
     static constexpr float WALL_NORMAL_THRESHOLD = 0.7f;
 };

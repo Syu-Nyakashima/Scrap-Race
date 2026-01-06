@@ -12,9 +12,9 @@ PlayScene::PlayScene() : player(stage)
 {
     //オブジェクトの構築、メンバ変数の初期化
      // 敵を3台生成(例)
-    enemies.push_back(new EnemyCPU(stage, AIDifficulty::Easy));
-    enemies.push_back(new EnemyCPU(stage, AIDifficulty::Normal));
-    enemies.push_back(new EnemyCPU(stage, AIDifficulty::Hard));
+    enemies.push_back(new EnemyCPU(stage, AIDifficulty::Easy, AIType::Attack));
+    enemies.push_back(new EnemyCPU(stage, AIDifficulty::Normal, AIType::Balance));
+    enemies.push_back(new EnemyCPU(stage, AIDifficulty::Hard, AIType::Defense));
 }
 
 PlayScene::~PlayScene()
@@ -42,10 +42,10 @@ void PlayScene::Initialize()
 
         // ウェイポイント設定
         std::vector<VECTOR> waypoints = {
-            VGet(0.0f, 0.0f, 50.0f),
-            VGet(30.0f, 0.0f, 80.0f),
-            VGet(60.0f, 0.0f, 50.0f),
-            VGet(30.0f, 0.0f, 20.0f)
+            VGet(-100.0f, 0.0f, -15.0f),
+            VGet(-100.0f, 0.0f, -250.0f),
+            VGet(100.0f, 0.0f, -250.0f),
+            VGet(100.0f, 0.0f, -15.0f)
         };
         enemies[i]->SetWaypoints(waypoints);
     }

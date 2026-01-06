@@ -11,7 +11,7 @@ class PlayScene : public BaseScene
 {
 public:
     PlayScene();   // コンストラクタ
-    ~PlayScene();  // デストラクタ
+    ~PlayScene() override;  // デストラクタ
 
     void Initialize() override;
     void Terminate() override;
@@ -21,9 +21,8 @@ private:
     void Draw();            // 描画処理
     void BuildCarList();    // Car配列を構築
     void UpdateGame();      // ゲームロジック更新
-    void DrawPlayerDebugUI();
     void CheckGameEnd();    // ゲーム終了判定
-
+    void DrawPlayerDebugUI();
 private:
     // コンストラクタで初期化
     // ゲームオブジェクト
