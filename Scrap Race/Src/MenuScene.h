@@ -24,4 +24,7 @@ private:
 
 private:
 	int selectedMenu;
+
+	int MenuImage;
+	int MenuSelectFrame;
 };

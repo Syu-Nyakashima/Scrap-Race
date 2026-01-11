@@ -122,7 +122,20 @@ void Scrap::CheckCollision(CarBase& car)
 	{
 		collected = true;
 		car.Heal(healAmount);
-		car.BoostStatus(spdMaxBoost, spdUpBoost, spdDownBoost);
+		int randomStat = rand() % 2;  // 0 or 1
+
+		if (randomStat == 0)
+		{
+			// Å‚‘¬“xUP
+			car.BoostStatus(spdMaxBoost, 0.0f);
+			printfDx("Scrapæ“¾I HP+%.1f, SpdMax+%.1f\n", healAmount, spdMaxBoost);
+		}
+		else
+		{
+			// ‰Á‘¬—ÍUP
+			car.BoostStatus(0.0f, spdUpBoost);
+			printfDx("Scrapæ“¾I HP+%.1f, SpdUp+%.2f\n", healAmount, spdUpBoost);
+		}
 	}
 }
 

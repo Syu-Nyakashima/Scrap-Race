@@ -1,8 +1,9 @@
 #include "ItemManager.h"
 
 
-ItemManager::ItemManager() : scrapSpawnTimer(0.0f),scrapSpawnInterval(NORMAL_SCRAP_SPAWN_INTERVAL),
-							 maxScraps(MAX_SCRAPS),normalScrapModel(-1),rareScrapModel(-1)
+ItemManager::ItemManager() 
+	: scrapSpawnTimer(0.0f),scrapSpawnInterval(NORMAL_SCRAP_SPAWN_INTERVAL),
+	  maxScraps(MAX_SCRAPS),normalScrapModel(-1),rareScrapModel(-1)
 {
 }
 
@@ -18,7 +19,7 @@ void ItemManager::Initialize()
 	scrapSpawnInterval = NORMAL_SCRAP_SPAWN_INTERVAL;
 	maxScraps = MAX_SCRAPS;
 
-	//normalScrapModel = MV1LoadModel("Data/Model/Scrap_Normal.mv1");
+	//normalScrapModel = MV1LoadModel("Data/Model/NormalScrap.mv1");
 	//if (normalScrapModel == -1) printfDx("normalScrapモデル読み込み失敗！\n");
 	//rareScrapModel = MV1LoadModel("Data/Model/Scrap_Rare.mv1");
 	//if (rareScrapModel == -1) printfDx("rareScrapモデル読み込み失敗！\n");
@@ -56,14 +57,9 @@ void ItemManager::Update(float deltaTime, int checkColModel, std::vector<CarBase
 	//スクラップがある間更新
 	for (auto& scrap : Scraps) {
 		scrap.Update(deltaTime, checkColModel);
-		for (auto* car : cars)
-		{
-			if (car != nullptr && car->IsAlive())
-			{
-				scrap.CheckCollision(*car);
-			}
-		}
 	}
+
+	CheckAllCollisions(cars);
 
 	//時間経過、または取得で消滅
 	Scraps.erase(
@@ -75,16 +71,24 @@ void ItemManager::Update(float deltaTime, int checkColModel, std::vector<CarBase
 
 void ItemManager::CheckAllCollisions(std::vector<CarBase*>& cars)
 {
+	for (auto& scrap : Scraps) {
+		for (auto* car : cars)
+		{
+			if (car != nullptr && car->IsAlive())
+			{
+				scrap.CheckCollision(*car);
+			}
+		}
+	}
 }
 
 void ItemManager::CheckCarWallHits(std::vector<CarBase*>& cars, int checkColModel)
 {
 	for (auto* car : cars)
 	{
-		if (car != nullptr && car->IsAlive() && car->hitWall && !car->wasHitWall)
+		if (car->JustHitWall())
 		{
-			// 壁に当たった瞬間にRareスクラップ生成
-			SpawnRareScrap(car->GetPosition(), car->GetAngle(), checkColModel, 3);
+			SpawnRareScrap(car->GetPosition(),car->GetAngle(),checkColModel,3);
 		}
 	}
 }
@@ -202,8 +206,6 @@ void ItemManager::SpawnRareScrap(const VECTOR& playerPos, float playerAngle, int
 			spawned++;
 		}
 	}
-
-	printfDx("Rare Scrap×%d 飛び散り生成！\n", spawned);
 }
 
 float ItemManager::GetGroundHeight(VECTOR position, int checkColModel)

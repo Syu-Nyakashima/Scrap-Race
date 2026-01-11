@@ -1,6 +1,7 @@
 #pragma once
 #include "DxLib.h"
 #include "Stage.h"
+#include <vector>
 
 class CarBase {
 public:
@@ -14,13 +15,19 @@ public:
 
     // 回復処理
     void Heal(float amount);
-    void BoostStatus(float spdMaxBoost, float spdUpBoost, float spdDownBoost);
+    void BoostStatus(float spdMaxBoost, float spdUpBoost);
 
     // ゲッター
     VECTOR GetPosition() const { return pos; }
     float GetAngle() const { return angle; }
+    VECTOR GetVelocity() const { return vel; }
     float GetHP() const { return Hp; }
     bool IsAlive() const { return Hp > 0.0f; }
+    bool IsGoaled() const { return isGoal; }
+    bool JustHitWall() const { return justHitWall; }
+    bool GetHitWall() const { return hitWall; } 
+
+    void SetCarList(std::vector<CarBase*>* carList) { allCars = carList; }
 
 protected:
     //ステータス変動
@@ -38,6 +45,14 @@ protected:
     void ProcessWallCollision(const MV1_COLL_RESULT_POLY_DIM& HitPolyDim);
     void ApplyWallPushOut(VECTOR pushOut, VECTOR avgNormal);
     void ApplyWallDamage();
+
+    void CheckCarCollision( float delta);
+    void ProcessCarCollision(CarBase* otherCar, float currentDist);
+    void ReflectVelocity(VECTOR collisionDir, float currentSpeed);  // ← 追加
+    void GetPushed(VECTOR collisionDir, float pusherSpeed);         // ← 追加
+
+    // 既存のメンバー
+    std::vector<CarBase*>* allCars;  // 全車両へのポインタ
 
     // サブクラスで実装する入力処理
     virtual void UpdateInput(float delta) = 0;
@@ -60,21 +75,21 @@ public:
     // ステータス下限
     static constexpr float MIN_SPD_MAX = 50.0f;
     static constexpr float MIN_SPD_UP = 0.3f;
-    static constexpr float MIN_SPD_DOWN = 0.3f;
 
     // ステータス減少率
-    static constexpr float STATUS_DRAIN_SPD_MAX = 0.02f;
-    static constexpr float STATUS_DRAIN_SPD_UP = 0.001f;
-    static constexpr float STATUS_DRAIN_SPD_DOWN = 0.001f;
+    static constexpr float STATUS_DRAIN_SPD_MAX = 1.0f;
+    static constexpr float STATUS_DRAIN_SPD_UP = 0.1f;
 
     // 当たり判定パラメータ
-    float capsuleRadius = 5.0f;
-    float capsuleHeight = 3.0f;
+    float capsuleRadius;
+    float capsuleHeight;
 
     // 状態フラグ
     bool hitWall;
     bool wasHitWall;
+    bool justHitWall;
     bool onGround;
+    bool isGoal;
 
 protected:
     // ステージ情報
@@ -90,4 +105,6 @@ protected:
     static constexpr float FOOT_OFFSET_RATIO = 0.5f;
     static constexpr int MAX_WALL_ITERATIONS = 3;
     static constexpr float WALL_NORMAL_THRESHOLD = 0.7f;
+    static constexpr float CAR_COLLISION_RESTITUTION = 0.8f;  // ← 修正: Car衝突の基本反発係数
+    static constexpr float CAR_COLLISION_DAMAGE_MULTIPLIER = 0.1f;  // ← 修正: Car衝突のダメージ倍率
 };

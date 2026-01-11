@@ -1,10 +1,11 @@
-#include "CarBase.h"
+﻿#include "CarBase.h"
 #include <math.h>
+#include "ItemManager.h"
 
 CarBase::CarBase(Stage& stageRef)
-	: stage(stageRef), ModelHandle(-1), hitWall(false), wasHitWall(false), onGround(false)
+	: stage(stageRef), ModelHandle(-1), hitWall(false), wasHitWall(false), onGround(false), justHitWall(false), allCars(nullptr)
 {
-	// �����o�ϐ��̏������̂݁AInitialize�ŏ�����
+	// メンバ変数の初期化のみ、Initializeで初期化
 }
 
 CarBase::~CarBase()
@@ -17,12 +18,12 @@ CarBase::~CarBase()
 
 void CarBase::Initialize() 
 {
-    // �ʒu������
+    // 位置初期化
     pos = VGet(0.0f, 10.0f, 0.0f);
     vel = VGet(0.0f, 0.0f, 0.0f);
     angle = 0.0f;
 
-    // �X�e�[�^�X������
+    // ステータス初期化
     moveSpeed = 0.0f;
     SpdMax = 150.0f;
     SpdMin = 0.0f;
@@ -30,14 +31,16 @@ void CarBase::Initialize()
     SpdDown = 0.5f;
     Hp = 100.0f;
 
-    // �����蔻�菉����
+    // 当たり判定初期化
     capsuleRadius = 1.5f;
     capsuleHeight = 2.0f;
 
-    // ��ԃt���O������
+    // 状態フラグ初期化
     hitWall = false;
     wasHitWall = false;
     onGround = false;
+    isGoal = false;
+    justHitWall = false;
 }
 
 void CarBase::Terminate()
@@ -59,6 +62,12 @@ void CarBase::Draw()
 
     MV1SetMatrix(ModelHandle, matWorld);
     MV1DrawModel(ModelHandle);
+
+    VECTOR capsuleTop = VAdd(pos, VGet(0.0f, capsuleHeight * 0.4f, 0.0f));
+    VECTOR capsuleBottom = VAdd(pos, VGet(0.0f, -capsuleHeight * 0.2f, 0.0f));
+
+    DrawCapsule3D(capsuleTop, capsuleBottom, capsuleRadius,
+        8, GetColor(0, 255, 0), GetColor(255, 255, 255), FALSE);
 }
 
 void CarBase::Heal(float amount) 
@@ -69,15 +78,13 @@ void CarBase::Heal(float amount)
     }
 }
 
-void CarBase::BoostStatus(float spdMaxBoost, float spdUpBoost, float spdDownBoost)
+void CarBase::BoostStatus(float spdMaxBoost, float spdUpBoost)
 {
     SpdMax += spdMaxBoost;
     SpdUp += spdUpBoost;
-    SpdDown += spdDownBoost;
 
-    if (SpdMax > 250.0f) SpdMax = 250.0f;
+    if (SpdMax > 250.0f) SpdMax = 200.0f;
     if (SpdUp > 2.0f) SpdUp = 2.0f;
-    if (SpdDown > 2.0f) SpdDown = 2.0f;
 }
 
 void CarBase::DrainStatusOverTime(float delta)
@@ -87,47 +94,48 @@ void CarBase::DrainStatusOverTime(float delta)
 
     SpdUp -= STATUS_DRAIN_SPD_UP * delta;
     if (SpdUp < MIN_SPD_UP) SpdUp = MIN_SPD_UP;
-
-    SpdDown -= STATUS_DRAIN_SPD_DOWN * delta;
-    if (SpdDown < MIN_SPD_DOWN) SpdDown = MIN_SPD_DOWN;
 }
 
 void CarBase::UpdatePhysics(float delta)
 {
-    // �p�x����i�s�������v�Z
+    // 角度から進行方向を計算
     float rad = angle * DX_PI_F / 180.0f;
 
-    // ���x�v�Z
+    // 速度計算
     vel.x = sinf(rad) * moveSpeed * delta;
     vel.z = cosf(rad) * moveSpeed * delta;
     vel.y += GRAVITY * delta;
 
-    // �ʒu�X�V
+    // 位置更新
     pos = VAdd(pos, vel);
+    SpherePos = pos;
 }
 
 void CarBase::UpdateCollision(float delta) 
 {
-    //�X�e�[�W�̃R���W��������
+    //ステージのコリジョン判定
     int colModel = stage.GetCheckColModel();
+    justHitWall = false;
 
-    // �n�ʂ𔻒�
+    // 地面を判定
     CheckGround(colModel, delta);
-    //�ǂ𔻒�
+    //壁を判定
     CheckWall(colModel, delta);
+    //車同士の接触判定
+    CheckCarCollision(delta);
 }
 
 void CarBase::CheckGround(int CheckColModel, float delta)
 {
     if (CheckColModel == -1) return;
 
-    // �����̓_���������i�E�n�΍�j
+    // 複数の点から線判定（窪地対策）
     const int CHECK_POINTS = 4;
     VECTOR checkOffsets[CHECK_POINTS] = {
-        VGet(0.0f, 0.0f, 0.0f),           // ����
-        VGet(capsuleRadius * 0.5f, 0.0f, 0.0f),     // �E
-        VGet(-capsuleRadius * 0.5f, 0.0f, 0.0f),    // ��
-        VGet(0.0f, 0.0f, capsuleRadius * 0.5f)      // �O
+        VGet(0.0f, 0.0f, 0.0f),           // 中央
+        VGet(capsuleRadius * 0.5f, 0.0f, 0.0f),     // 右
+        VGet(-capsuleRadius * 0.5f, 0.0f, 0.0f),    // 左
+        VGet(0.0f, 0.0f, capsuleRadius * 0.5f)      // 前
     };
 
     float highestGroundY = -99999.0f;
@@ -139,7 +147,7 @@ void CarBase::CheckGround(int CheckColModel, float delta)
         float groundY;
 
         if (CheckGroundPoint(CheckColModel, checkPos, groundY)) {
-            // �ł������n�ʂ��L�^
+            // 最も高い地面を記録
             if (groundY > highestGroundY) {
                 highestGroundY = groundY;
                 foundGround = true;
@@ -147,7 +155,7 @@ void CarBase::CheckGround(int CheckColModel, float delta)
         }
     }
 
-    // �n�ʂ̏���
+    // 地面の処理
     if (foundGround) {
         ApplyGroundPhysics(highestGroundY, delta);
     }
@@ -165,7 +173,7 @@ bool CarBase::CheckGroundPoint(int CheckColModel, VECTOR checkPos, float& outGro
         CheckColModel, -1, lineStart, lineEnd
     );
 
-    // �f�o�b�O�\��
+    // デバッグ表示
     int lineColor = (HitPoly.HitFlag == 1) ? GetColor(0, 255, 0) : GetColor(255, 0, 0);
     DrawLine3D(lineStart, lineEnd, lineColor);
 
@@ -180,16 +188,16 @@ bool CarBase::CheckGroundPoint(int CheckColModel, VECTOR checkPos, float& outGro
 
 void CarBase::ApplyGroundPhysics(float groundY, float delta)
 {
-    // �Ԃ̑����̍���
+    // 車の足元の高さ
     const float FOOT_OFFSET = capsuleHeight * FOOT_OFFSET_RATIO;
     float targetY = groundY + FOOT_OFFSET;
 
-    // �n�ʂ�艺�A�܂��͔��ɋ߂��ꍇ
-    if (pos.y <= targetY + 0.05f)  // ���e�͈͂�������
+    // 地面より下、または非常に近い場合
+    if (pos.y <= targetY + 0.05f)  // 許容範囲を小さく
     {
         pos.y = targetY;
 
-        //�󒆂Ȃ�
+        //空中なら
         if (vel.y < 0.0f)
         {
             vel.y = 0.0f;
@@ -218,14 +226,14 @@ void CarBase::CheckWall(int CheckColModel, float delta)
             CheckColModel, -1, capsuleTop, capsuleBottom, WALL_RADIUS
         );
 
-        //�ǂɓ������Ă��Ȃ���Δ��������
+        //壁に当たっていなければ判定を消す
         if (HitPolyDim.HitNum == 0)
         {
             MV1CollResultPolyDimTerminate(HitPolyDim);
             break;
         }
 
-        //�ǂɓ��������Ƃ�
+        //壁に当たったとき
         ProcessWallCollision(HitPolyDim);
 
         MV1CollResultPolyDimTerminate(HitPolyDim);
@@ -236,7 +244,11 @@ void CarBase::CheckWall(int CheckColModel, float delta)
         }
     }
 
-    //�ǏՓ˃_���[�W
+    if (hitWall && !wasHitWall) {
+        justHitWall = true;
+    }
+
+    //壁衝突ダメージ
     ApplyWallDamage();
     wasHitWall = hitWall;
 }
@@ -254,7 +266,7 @@ void CarBase::ProcessWallCollision(const MV1_COLL_RESULT_POLY_DIM& HitPolyDim)
         MV1_COLL_RESULT_POLY& poly = HitPolyDim.Dim[i];
         VECTOR normal = poly.Normal;
 
-        // �n�ʂ�V������O
+        // 地面や天井を除外
         if (fabsf(normal.y) > 0.5f) continue;
 
         VECTOR toCenter = VSub(pos, poly.Position[0]);
@@ -272,7 +284,7 @@ void CarBase::ProcessWallCollision(const MV1_COLL_RESULT_POLY_DIM& HitPolyDim)
     if (VSize(totalPushOut) > 0.001f)
     {
         float pushDistance = VSize(totalPushOut);
-        //�ُ�ȉ����o���̌��o
+        //異常な押し出しの検出
         if (pushDistance > 10.0f)
         {
             printfDx("WARNING: Large push detected: %.2f\n", pushDistance);
@@ -283,13 +295,13 @@ void CarBase::ProcessWallCollision(const MV1_COLL_RESULT_POLY_DIM& HitPolyDim)
             return;
         }
 
-        //���ϖ@�����v�Z
+        //平均法線を計算
         if (validNormalCount > 0) {
             avgNormal = VScale(avgNormal, 1.0f / validNormalCount);
             avgNormal = VNorm(avgNormal);
         }
 
-        //�����o��
+        //押し出し
         ApplyWallPushOut(totalPushOut, avgNormal);
 
         hitWall = true;
@@ -298,10 +310,10 @@ void CarBase::ProcessWallCollision(const MV1_COLL_RESULT_POLY_DIM& HitPolyDim)
 
 void CarBase::ApplyWallPushOut(VECTOR pushOut, VECTOR avgNormal)
 {
-    //�ʒu�̉����o��
+    //位置の押し出し
     pos = VAdd(pos, VScale(pushOut, 1.1f));
 
-    // ���x�x�N�g���𔽎�
+    // 速度ベクトルを反射
     float velDot = VDot(vel, avgNormal);
 
     if (velDot < 0.0f)
@@ -309,21 +321,265 @@ void CarBase::ApplyWallPushOut(VECTOR pushOut, VECTOR avgNormal)
         VECTOR reflection = VScale(avgNormal, velDot * (1.0f + RESTITUTION));
         vel = VSub(vel, reflection);
 
-        // moveSpeed�𔽓]
+        // moveSpeedを反転
         moveSpeed *= -RESTITUTION;
     }
 }
 
 void CarBase::ApplyWallDamage()
 {
-    // �ǂɓ��������u�Ԃ�HP����
-    if (hitWall && !wasHitWall)
+    // 壁に当たった瞬間のHP減少
+    if (justHitWall)
     {
         float currentSpeed = fabsf(moveSpeed);
 
-        //HP����
+        //HP減少
         float damage = currentSpeed * DAMAGE_MULTIPLIER;
         Hp -= damage;
-        printfDx("%f����\n", damage);
+    }
+}
+
+void CarBase::CheckCarCollision(float delta)
+{
+    if (allCars == nullptr) return;  // リストが設定されていない
+
+    for (auto* otherCar : *allCars)
+    {
+        if (otherCar == this) continue;           // 自分自身は除外
+        if (otherCar->GetHP() <= 0.0f) continue;  // 死亡した車は無視
+
+        // 位置同士の距離で判定
+        VECTOR otherPos = otherCar->GetPosition();
+        VECTOR diff = VSub(otherPos, pos);
+        diff.y = 0.0f;  // 水平方向のみ
+
+        float dist = VSize(diff);
+
+        // 衝突判定距離(お互いの半径の合計)
+        float collisionDist = capsuleRadius * 2.0f;
+
+        // 衝突している
+        if (dist < collisionDist)
+        {
+            ProcessCarCollision(otherCar, dist);
+        }
+    }
+}
+
+void CarBase::ProcessCarCollision(CarBase* otherCar,float currentDist)
+{
+    VECTOR otherPos = otherCar->GetPosition();
+    
+    // 衝突方向(自分→相手)
+    VECTOR toOther = VSub(otherPos, pos);
+    toOther.y = 0.0f;
+    float dist = VSize(toOther);
+    
+    if (dist < 0.01f) return;
+
+    VECTOR collisionDir = VNorm(toOther);
+
+    // 重なり量
+    float collisionDist = capsuleRadius * 2.0f;
+    float overlap = collisionDist - dist;
+    if (overlap > 0.0f)
+    {
+        // お互いに押し出す(お互いに半分ずつ)
+        VECTOR pushVec = VScale(collisionDir, overlap * 0.5f);
+        pos = VSub(pos, pushVec);
+
+        // 速度を取得
+        VECTOR myVel = VGet(vel.x, 0.0f, vel.z);
+        float mySpeed = VSize(myVel);
+
+        // 相手の速度も取得
+        VECTOR otherVel = otherCar->GetVelocity();
+        otherVel.y = 0.0f;
+        float otherSpeed = VSize(otherVel);
+
+        // 相対速度を計算
+        VECTOR relativeVel = VSub(myVel, otherVel);
+        float relativeSpeed = VSize(relativeVel);
+
+        //ダメージ計算
+        float damage = relativeSpeed * CAR_COLLISION_DAMAGE_MULTIPLIER;
+        if (damage > 0.1f) {  // 最低ダメージ閾値
+            Hp -= damage;
+            printfDx("衝突 Damage: %.2f (RelSpeed: %.1f)\n", damage, relativeSpeed);
+        }
+
+        // 自分の進行方向
+        VECTOR myDir = VGet(0.0f, 0.0f, 0.0f);
+        if (mySpeed > 0.1f) {
+            myDir = VNorm(myVel);
+        }
+
+        // 相手に向かっているか判定(内積)
+        float myDot = VDot(myDir, collisionDir);
+
+        // 相手が自分に向かっているか
+        VECTOR otherDir = VGet(0.0f, 0.0f, 0.0f);
+        if (otherSpeed > 0.1f) {
+            otherDir = VNorm(otherVel);  // ← 修正: VNorm使用
+        }
+        float otherDot = VDot(otherDir, VScale(collisionDir, -1.0f));
+
+        //判定
+        bool MovingMe = (mySpeed > 1.0f);
+        bool MovingOther = (otherSpeed > 1.0f);
+        bool AttackerMe = (myDot > 0.3f);
+        bool AttackerOther = (otherDot > 0.3f);
+
+        if (MovingMe && !MovingOther)
+        {
+            // パターン1: 自分だけ動いている → 自分が当たった
+            ReflectVelocity(collisionDir, mySpeed);
+            printfDx("Car collision: I HIT stationary car (speed: %.1f)\n", mySpeed);
+        }
+        else if (!MovingMe && MovingOther)
+        {
+            // パターン2: 相手だけ動いている → 当てられた
+            GetPushed(collisionDir, otherSpeed);
+            printfDx("Car collision: I GOT HIT (pushed by: %.1f)\n", otherSpeed);
+        }
+        else if (MovingMe && MovingOther)
+        {
+            // パターン3: 両方動いている
+            if (AttackerMe && !AttackerOther)
+            {
+                // 自分が向かっている、相手は逃げている → 自分が当たった
+                ReflectVelocity(collisionDir, mySpeed);
+                printfDx("Car collision: I HIT moving car (speed: %.1f vs %.1f)\n", mySpeed, otherSpeed);
+            }
+            else if (!AttackerMe && AttackerOther)
+            {
+                // 相手が向かっている、自分は逃げている → 当てられた
+                GetPushed(collisionDir, otherSpeed);
+                printfDx("Car collision: I GOT HIT by moving car\n");
+            }
+            else
+            {
+                // 正面衝突 or すれ違い → 速い方が「当たった」扱い
+                if (mySpeed > otherSpeed)
+                {
+                    ReflectVelocity(collisionDir, mySpeed);
+                    printfDx("Car collision: HEAD-ON (I'm faster: %.1f > %.1f)\n", mySpeed, otherSpeed);
+                }
+                else
+                {
+                    GetPushed(collisionDir, otherSpeed);
+                    printfDx("Car collision: HEAD-ON (I'm slower: %.1f < %.1f)\n", mySpeed, otherSpeed);
+                }
+            }
+        }
+    }
+}
+
+// 反射処理（当たった側）
+void CarBase::ReflectVelocity(VECTOR collisionDir, float currentSpeed)
+{
+    // 現在の速度ベクトル
+    VECTOR currentVel = VGet(vel.x, 0.0f, vel.z);
+    VECTOR currentDir = VNorm(currentVel);
+
+    // 反射ベクトルの計算 
+    float dot = VDot(currentDir, collisionDir);
+    VECTOR reflection = VScale(collisionDir, dot * 2.0f);
+    VECTOR reflectDir = VSub(currentDir, reflection);
+    reflectDir = VNorm(reflectDir);
+
+    //衝突角度に応じた反発係数
+    float absDot = fabsf(dot);
+    float restitution;
+
+    if (absDot > 0.7f) {
+        // 正面衝突(角度が小さい) → 大きく減速
+        restitution = 0.3f;
+        printfDx("  → HEAD-ON collision (dot: %.2f)\n", dot);
+    }
+    else if (absDot > 0.3f) {
+        // 斜め衝突 → 中程度減速
+        restitution = 0.7f;
+        printfDx("  → ANGLED collision (dot: %.2f)\n", dot);
+    }
+    else {
+        // 横からの衝突 → ほぼ速度維持
+        restitution = 0.95f;
+        printfDx("  → SIDE collision (dot: %.2f)\n", dot);
+    }
+
+    // 反射後の速度
+    float newSpeed = currentSpeed * restitution;
+
+    vel.x = reflectDir.x * newSpeed;
+    vel.z = reflectDir.z * newSpeed;
+    moveSpeed = newSpeed;
+
+    // 角度更新
+    angle = atan2f(reflectDir.x, reflectDir.z) * 180.0f / DX_PI_F;
+
+    printfDx("  → Reflected: %.1f -> %.1f (restitution: %.2f)\n",
+        currentSpeed, newSpeed, restitution);
+}
+
+
+
+// 押し出し処理(当てられた側)
+void CarBase::GetPushed(VECTOR collisionDir, float pusherSpeed)
+{
+    // 現在の速度ベクトル
+    VECTOR currentVel = VGet(vel.x, 0.0f, vel.z);
+    VECTOR currentDir = VGet(0.0f, 0.0f, 0.0f);
+    float currentSpeed = VSize(currentVel);
+
+    if (currentSpeed > 0.1f) {
+        currentDir = VNorm(currentVel);
+    }
+
+
+    // 衝突方向と逆
+    VECTOR pushDir = VScale(collisionDir, -1.0f);
+
+    //衝突角度に応じた処理
+    float dot = VDot(currentDir, pushDir);
+
+    if (dot < -0.5f) {
+        // 追突された(同じ方向に走っていた)
+        // → 前の車の速度を受け継ぐ
+        float speedDiff = pusherSpeed - currentSpeed;
+        if (speedDiff > 0.0f) {
+            // 加速される
+            VECTOR addVel = VScale(pushDir, speedDiff * 0.8f);
+            VECTOR newVel = VAdd(currentVel, addVel);
+
+            vel.x = newVel.x;
+            vel.z = newVel.z;
+            moveSpeed = VSize(newVel);
+
+            printfDx("  → Pushed FORWARD: %.1f -> %.1f\n", currentSpeed, moveSpeed);
+        }
+        else {
+            // 自分の方が速い → そのまま
+            printfDx("  → Already faster, no push\n");
+        }
+    }
+    else {
+        // 横/斜めから押された
+        // → 押される力を加算
+        float pushForce = pusherSpeed * 0.5f;
+        VECTOR pushVel = VScale(pushDir, pushForce);
+        VECTOR newVel = VAdd(currentVel, pushVel);
+
+        vel.x = newVel.x;
+        vel.z = newVel.z;
+        moveSpeed = VSize(newVel);
+
+        printfDx("  → Pushed SIDE: %.1f + %.1f = %.1f\n",
+            currentSpeed, pushForce, moveSpeed);
+    }
+
+    // 角度更新(新しい速度方向を向く)
+    if (moveSpeed > 0.1f) {
+        angle = atan2f(vel.x, vel.z) * 180.0f / DX_PI_F;
     }
 }

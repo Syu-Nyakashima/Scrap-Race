@@ -15,6 +15,7 @@ PlayScene::PlayScene() : player(stage)
     enemies.push_back(new EnemyCPU(stage, AIDifficulty::Easy, AIType::Attack));
     enemies.push_back(new EnemyCPU(stage, AIDifficulty::Normal, AIType::Balance));
     enemies.push_back(new EnemyCPU(stage, AIDifficulty::Hard, AIType::Defense));
+    enemies.push_back(new EnemyCPU(stage, AIDifficulty::Normal, AIType::ScrapHunter));
 }
 
 PlayScene::~PlayScene()
@@ -23,10 +24,16 @@ PlayScene::~PlayScene()
         delete enemy;
     }
     enemies.clear();
+
+    DeleteGraph(SpeedMeter);
+    DeleteGraph(MeterNeedle);
 }
 
 void PlayScene::Initialize()
 {
+    SpeedMeter = LoadGraph("Data/Image/SpeedMeter.png");
+    MeterNeedle = LoadGraph("Data/Image/meterneedle.png");
+
     stage.Initialize();
     player.Initialize();
     camera.Initialize();
@@ -69,6 +76,12 @@ void PlayScene::BuildCarList()
     for (auto* enemy : enemies) {
         allCars.push_back(enemy);
     }
+
+    // 各車両にリストを設定
+    for (auto* car : allCars)
+    {
+        car->SetCarList(&allCars);
+    }
 }
 
 void PlayScene::Terminate() 
@@ -82,6 +95,9 @@ void PlayScene::Terminate()
     }
 
     allCars.clear();
+
+    DeleteGraph(SpeedMeter);
+    DeleteGraph(MeterNeedle);
 }
 
 //-------------------------------------------------------------
@@ -110,7 +126,7 @@ void PlayScene::Update()
 void PlayScene::Draw()
 {
     //DxLib更新開始
-    SetBackgroundColor(140, 140, 140);
+    SetBackgroundColor(0, 140, 255);
     ClearDrawScreen();
 
     //Draw処理
@@ -129,15 +145,11 @@ void PlayScene::Draw()
     itemManager.Draw();
 
     //UI
-    if (stage.CheckGoal(player.pos))
-    {
-        DrawString(0, 0, "GOAL!", GetColor(255, 255, 0));
-    }
+    DrawGraph(800,480,SpeedMeter,true);
 
-    if (player.Hp <= 0.0f) {
-        printfDx("ゲームオーバー\n");
-    }
+    DrawRotaGraph(1030, 660, 1.0f, DX_PI_F / 180.0f*allCars[0]->moveSpeed, MeterNeedle, true);
 
+    //ImGui
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
@@ -176,8 +188,8 @@ void PlayScene::UpdateGame()
     }
 
     camera.Update(player, deltaTime);
-    itemManager.Update(deltaTime, stage.GetCheckColModel(), allCars);
     stage.Update();
+    itemManager.Update(deltaTime, stage.GetCheckColModel(), allCars);
 }
 
 
@@ -233,11 +245,11 @@ void PlayScene::DrawPlayerDebugUI()
     static float cameraNear = 0.1f;
     static float cameraFar = 500.0f;
 
-    ImGui::SliderFloat("Distance", &cameraDistance, 0.0f, 150.0f);
-    ImGui::SliderFloat("Height", &cameraHeight, 0.0f, 100.0f);
-    ImGui::SliderFloat("Target Offset Y", &targetOffsetY, -20.0f, 20.0f);
-    ImGui::SliderFloat("cameraNear", &cameraNear, 0.0f, 1000.0f);
-    ImGui::SliderFloat("cameraFar", &cameraFar, 0.0f, 1000.0f);
+    ImGui::SliderFloat("Distance", &cameraDistance, 0.0f, 1500.0f);
+    ImGui::SliderFloat("Height", &cameraHeight, 0.0f, 1000.0f);
+    ImGui::SliderFloat("Target Offset Y", &targetOffsetY, -20.0f, 1020.0f);
+    ImGui::SliderFloat("cameraNear", &cameraNear, 0.0f, 10000.0f);
+    ImGui::SliderFloat("cameraFar", &cameraFar, 0.0f, 10000.0f);
     // 値をCameraクラスに渡す（TPS視点用に）
     camera.SetDebugCameraParams(cameraDistance, cameraHeight, targetOffsetY, cameraNear, cameraFar);
 
@@ -256,6 +268,7 @@ void PlayScene::DrawPlayerDebugUI()
     ImGui::Separator();
     ImGui::Text("Status");
     ImGui::InputFloat("Move Speed", &player.moveSpeed, 0.0f, 100.0f);
+    ImGui::InputFloat("Move Speed", &player.SpdMax, 0.0f, 100.0f);
     ImGui::InputFloat("HP", &player.Hp, 0.0f, 100.0f);
 
     // 位置リセット

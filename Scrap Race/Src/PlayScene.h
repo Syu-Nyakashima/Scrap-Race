@@ -39,4 +39,11 @@ private:
     // リスト
     std::vector<EnemyCPU*> enemies;     //敵リスト
     std::vector<CarBase*> allCars;      //全Car管理
+
+    //UI画像
+    int SpeedMeter;
+    int MeterNeedle;
+    int RankNum;
+    int RapNum;
+
 };

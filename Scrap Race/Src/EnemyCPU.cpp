@@ -1,11 +1,11 @@
 #include "EnemyCPU.h"
 
 EnemyCPU::EnemyCPU(Stage& stageRef, AIDifficulty diff, AIType type)
-	: CarBase(stageRef), difficulty(diff), type(type),
+    : CarBase(stageRef), difficulty(diff), type(type),
     currentWaypointIndex(0), thinkTimer(0.0f), stuckTimer(0.0f),
     isStuck(false), hasNearestScrap(false), scrapSearchRadius(SCRAP_SEARCH_RADIUS),
-    errorTimer(0.0f), isInError(false)
-{
+    errorTimer(0.0f), isInError(false), wallHitRecoveryTimer(0.0f)
+{   
     // 難易度別パラメータ設定
     switch (difficulty)
     {
@@ -14,7 +14,7 @@ EnemyCPU::EnemyCPU(Stage& stageRef, AIDifficulty diff, AIType type)
         corneringSkill = 0.6f;
         recoverySpeed = 0.5f;
         errorRate = 0.3f;
-        errorDuration = 1.5f;
+        errorDuration = 3.0f;
         SpdMax = 120.0f;
         break;
 
@@ -23,16 +23,16 @@ EnemyCPU::EnemyCPU(Stage& stageRef, AIDifficulty diff, AIType type)
         corneringSkill = 0.8f;
         recoverySpeed = 0.8f;
         errorRate = 0.15f;
-        errorDuration = 0.8f;
-        SpdMax = 150.0f;
-        break;
+            errorDuration = 2.0f;
+            SpdMax = 150.0f;
+            break;
 
     case AIDifficulty::Hard:
         reactionTime = 0.05f;
         corneringSkill = 0.95f;
         recoverySpeed = 1.0f;
         errorRate = 0.05f;
-        errorDuration = 0.3f;
+        errorDuration = 1.0f;
         SpdMax = 180.0f;
         break;
     }
@@ -64,6 +64,8 @@ void EnemyCPU::Initialize()
     hasNearestScrap = false;
     errorTimer = 0.0f;
     isInError = false;
+    wallHitRecoveryTimer = 0.0f;
+    lastWaypointDist = 99999.0f;  // ← 追加
 }
 
 void EnemyCPU::Terminate()
@@ -77,6 +79,7 @@ void EnemyCPU::Update(float delta)
     Hp -= HP_DRAIN_PER_FRAME;
     if (Hp <= 0.0f) {
         Hp = 0.0f;
+        printfDx("Enemy Dead!!!!!!!!\n");
         return; // 死亡時は動かない
     }
 
@@ -89,6 +92,11 @@ void EnemyCPU::Update(float delta)
     //エラー挙動
     UpdateErrorBehavior(delta);
 
+    // 壁衝突回復タイマー更新
+    if (wallHitRecoveryTimer > 0.0f) {
+        wallHitRecoveryTimer -= delta;
+    }
+
     // 入力処理(AIが決定)
     UpdateInput(delta);
 
@@ -97,6 +105,11 @@ void EnemyCPU::Update(float delta)
 
     // 衝突判定
     UpdateCollision(delta);
+
+    // 壁衝突検出 ← 追加
+    if (justHitWall) {
+        OnWallHit();
+    }
 
     // スタック検出
     CheckStuckState(delta);
@@ -107,25 +120,25 @@ void EnemyCPU::SetTypeParameters()
     switch (type)
     {
     case AIType::Attack:
-        aggressiveness = 0.9f;      // 壁を気にしない
+        aggressiveness = 1.0f;      // 壁を気にしない
         scrapPriority = 0.3f;       // スクラップ優先度低
         corneringSkill *= 0.8f;     // コーナリング下手
         break;
 
     case AIType::Defense:
-        aggressiveness = 0.2f;      // 壁を避ける
+        aggressiveness = 0.5f;      // 壁を避ける
         scrapPriority = 0.5f;       // スクラップ優先度中
         corneringSkill *= 1.2f;     // コーナリング上手
         break;
 
     case AIType::Balance:
-        aggressiveness = 0.5f;
+        aggressiveness = 0.75f;
         scrapPriority = 0.5f;
         // デフォルト値のまま
         break;
 
     case AIType::ScrapHunter:
-        aggressiveness = 0.6f;
+        aggressiveness = 0.7f;
         scrapPriority = 0.9f;       // スクラップ最優先
         scrapSearchRadius = 30.0f;  // 探索範囲拡大
         break;
@@ -153,14 +166,37 @@ void EnemyCPU::UpdateWaypointNavigation()
     float distToWaypoint = VSize(VSub(currentWaypoint, pos));
 
     // ウェイポイント到達判定
-    if (distToWaypoint < WAYPOINT_RADIUS)
+    if (distToWaypoint < WAYPOINT_RADIUS) // ウェイポイント到達
     {
         currentWaypointIndex = (currentWaypointIndex + 1) % waypoints.size();
+        lastWaypointDist = 99999.0f;
+        printfDx("Enemy reached waypoint %d\n", currentWaypointIndex);
+        return;
+    }
+    
+    if (distToWaypoint > lastWaypointDist + 1.0f) // 逆走検出
+    {
+        currentWaypointIndex = (currentWaypointIndex + 1) % waypoints.size();
+       printfDx("Enemyウェイポイントスキップ %d (moving away: %.1f -> %.1f)\n",
+            currentWaypointIndex, lastWaypointDist, distToWaypoint);
+        lastWaypointDist = 99999.0f;  // リセット
+    }
+    else
+    {
+        // 距離を更新
+        lastWaypointDist = distToWaypoint;
     }
 }
 
 void EnemyCPU::UpdateInput(float delta)
 {
+    //壁に衝突したら
+    if (wallHitRecoveryTimer > 0.0f)
+    {
+        RecoverFromWallHit(delta);
+        return;
+    }
+
     //スタックしていたら
     if (isStuck)
     {
@@ -190,6 +226,39 @@ void EnemyCPU::RecoverFromStuck(float delta)
     {
         isStuck = false;
         stuckTimer = 0.0f;
+    }
+}
+
+void EnemyCPU::OnWallHit()
+{
+    wallHitRecoveryTimer = WALL_RECOVERY_TIME;
+    moveSpeed = 0.0f;  // 一旦停止
+    printfDx("Enemy hit wall! Starting recovery...\n");
+}
+
+void EnemyCPU::RecoverFromWallHit(float delta)
+{
+    // 目標に向き直る
+    VECTOR target = GetCurrentTarget();
+    float targetAngle = GetAngleToTarget(target);
+    float angleDiff = targetAngle - angle;
+
+    // 角度を-180~180に正規化
+    while (angleDiff > 180.0f) angleDiff -= 360.0f;
+    while (angleDiff < -180.0f) angleDiff += 360.0f;
+
+    // 向き直り中は回転のみ
+    if (fabsf(angleDiff) > 10.0f)
+    {
+        float steerAmount = angleDiff > 0 ? ROTATION_SPEED * delta : -ROTATION_SPEED * delta;
+        angle += steerAmount;
+        moveSpeed = 0.0f;  // 停止したまま
+    }
+    else
+    {
+        // 向き直ったら前進再開
+        moveSpeed += SpdUp;  // ゆっくり加速
+        if (moveSpeed > SpdMax) moveSpeed = SpdMax;
     }
 }
 
@@ -290,10 +359,6 @@ void EnemyCPU::TriggerRandomError()
     }
 }
 
-void EnemyCPU::ApplyErrorToInput(float& steerAmount, float& targetSpeed)
-{
-}
-
 void EnemyCPU::HandleAcceleration(float delta)
 {
     float targetSpeed = CalculateTargetSpeed();
@@ -318,7 +383,7 @@ void EnemyCPU::HandleAcceleration(float delta)
     }
 
     // 壁衝突時はブレーキ
-    if (hitWall)
+    if (justHitWall)
     {
         moveSpeed *= 0.5f;
     }
@@ -330,20 +395,30 @@ float EnemyCPU::CalculateTargetSpeed() const
     float angleToTarget = GetAngleToTarget(target);
     float angleDiff = fabsf(angleToTarget - angle);
 
-    // 性格による速度調整
-    float baseSpeed = SpdMax * (1.0f - aggressiveness * 0.3f);
+    // 角度を0~180に正規化
+    while (angleDiff > 180.0f) angleDiff -= 360.0f;
+    angleDiff = fabsf(angleDiff);
 
-    // 角度差が大きいほど減速
-    if (angleDiff > 45.0f)
+    // ← 修正: 常に最高速を目指す(aggressiveness補正を削除)
+    float baseSpeed = SpdMax;
+
+    // コーナリングスキルによって減速度を調整
+    float skillFactor = corneringSkill;
+
+    // 角度差による減速(スキルで補正)
+    if (angleDiff > 90.0f)
     {
-        return baseSpeed * 0.5f;
+        // 大カーブ
+        return baseSpeed * (0.6f + 0.25f * skillFactor);
     }
-    else if (angleDiff > 20.0f)
+    else if (angleDiff > 45.0f)
     {
-        return baseSpeed * 0.7f;
+        // 中カーブ
+        return baseSpeed * (0.8f + 0.15f * skillFactor);
     }
 
-    return baseSpeed;  
+    // 直線やゆるいカーブ: 常に最高速
+    return baseSpeed;
 }
 
 void EnemyCPU::CheckStuckState(float delta)

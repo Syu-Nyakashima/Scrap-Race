@@ -33,30 +33,38 @@ public:
 	void ClearNearestScrap();
 
 protected:
+    //入力処理（AI）
     void UpdateInput(float delta) override;
 
 private:
     // 性格別パラメータ設定
     void SetTypeParameters();
 
-    // AI思考ルーチン
+    // AI思考
     void ThinkAI(float delta);
     void UpdateWaypointNavigation();
+
+    //入力処理
     void SteerToTarget(VECTOR targetPos, float delta);
     void HandleAcceleration(float delta);
-    void CheckStuckState(float delta);
-    void RecoverFromStuck(float delta);
-
-    // AI判断
-    bool ShouldSearchScrap() const;
     float CalculateTargetSpeed() const;
+    
+    //スタック検出
+    void CheckStuckState(float delta);
+
+    //回復処理
+    void RecoverFromStuck(float delta);
+    void OnWallHit();
+    void RecoverFromWallHit(float delta);
+    
+    // 目標設定
+    bool ShouldSearchScrap() const;
     VECTOR GetCurrentTarget() const;
     float GetAngleToTarget(VECTOR target) const;
 
     //エラー挙動
     void UpdateErrorBehavior(float delta);
     void TriggerRandomError();
-    void ApplyErrorToInput(float& steerAmount, float& targetSpeed);
 
 private:
     // AI設定
@@ -79,6 +87,7 @@ private:
     // ウェイポイント(コース上の目標地点)
     std::vector<VECTOR> waypoints;
     int currentWaypointIndex;
+    float lastWaypointDist;
 
     // AI状態
     float thinkTimer;            // 思考更新タイマー
@@ -91,12 +100,16 @@ private:
     bool hasNearestScrap;
     float scrapSearchRadius;
 
+    // 壁衝突回復
+    float wallHitRecoveryTimer;
+
     // 定数
     static constexpr float THINK_INTERVAL = 0.1f;      // 思考更新間隔
-    static constexpr float WAYPOINT_RADIUS = 45.0f;     // ウェイポイント到達判定
+    static constexpr float WAYPOINT_RADIUS = 40.0f;     // ウェイポイント到達判定
     static constexpr float STUCK_THRESHOLD = 1.0f;     // スタック判定距離
     static constexpr float STUCK_TIME = 2.0f;          // スタック判定時間
     static constexpr float LOW_HP_THRESHOLD = 30.0f;   // HP低下判定
     static constexpr float SCRAP_SEARCH_RADIUS = 20.0f;// スクラップを探す範囲
     static constexpr float ERROR_CHECK_INTERVAL = 2.0f;  // エラー判定間隔
+    static constexpr float WALL_RECOVERY_TIME = 2.0f;  // 壁衝突時の回復時間
 };

@@ -17,11 +17,11 @@ public:
 
     // 最も近いスクラップを検索(敵AI用)
     bool FindNearestScrap(const VECTOR& pos, float searchRadius, VECTOR& outScrapPos);
-
+	void SpawnRareScrap(const VECTOR& centerPos, float angle, int checkColModel, int count);
 private:
 	//Scrap関数
 	void SpawnNormalScrap(const VECTOR& centerPos, int checkColModel);
-	void SpawnRareScrap(const VECTOR& centerPos, float angle, int checkColModel, int count);
+
 
 	//衝突判定
     void CheckAllCollisions(std::vector<CarBase*>& cars);
@@ -67,5 +67,5 @@ private:
     static constexpr float MAX_GROUND_HEIGHT = 100.0f;
 
     // Scrap上限
-    static constexpr size_t MAX_SCRAPS = 10;
+    static constexpr size_t MAX_SCRAPS = 50;
 };

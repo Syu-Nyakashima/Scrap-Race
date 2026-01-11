@@ -18,7 +18,7 @@ void Player::Initialize()
     CarBase::Initialize();
 
     //モデル読み込み
-    ModelHandle = MV1LoadModel("Data/Model/free_car_1.mv1");
+    ModelHandle = MV1LoadModel("Data/Model/free_car_01.mv1");
     if (ModelHandle == -1) printfDx("モデル読み込み失敗！\n");
     
     // 位置初期化
@@ -29,7 +29,7 @@ void Player::Initialize()
 
     //ステータス初期化
     moveSpeed = 0.0f;
-    SpdMax = 150.0f;
+    SpdMax = 100.0f;
     SpdMin = 0.0f;
     SpdUp = 0.5f;
     SpdDown = 0.5f;
