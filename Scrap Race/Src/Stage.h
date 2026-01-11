@@ -1,5 +1,6 @@
 #pragma once
 #include "DxLib.h"
+#include <vector>
 
 class Stage 
 {
@@ -14,6 +15,10 @@ public:
 
 	int GetCheckColModel() const { return CheckColModel; }
 
+	bool CheckCheckpoint(VECTOR carPos, int currentCheckpoint);
+	int GetTotalCheckpoints() const { return (int)checkpoints.size(); }
+	void DrawCheckpoints() const;
+
 private:
 	int StageModelHandle = -1;
 	int CheckColModel = -1;
@@ -27,4 +32,14 @@ private:
 	bool wasInside;
 	float inZ;
 	float outZ;
+
+	struct Checkpoint
+	{
+		VECTOR pos;
+		float width;
+		float height;
+		float depth;
+	};
+
+	std::vector<Checkpoint> checkpoints;
 };

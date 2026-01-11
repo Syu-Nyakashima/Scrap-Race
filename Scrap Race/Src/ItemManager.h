@@ -1,8 +1,8 @@
 #pragma once
 #include "DxLib.h"
-#include <vector>
 #include "Scrap.h"
-#include "Player.h"
+#include "CarBase.h"
+#include <vector>
 
 class ItemManager {
 public:
@@ -12,33 +12,32 @@ public:
 	void Initialize();
 	void Terminate();
 
-	void Update(const VECTOR& playerPos, float playerAngle, float deltaTime,Player& player,int checkColModel);
+    void Update(float deltaTime, int checkColModel, std::vector<CarBase*>& cars);
 	void Draw();
 
+    // 最も近いスクラップを検索(敵AI用)
+    bool FindNearestScrap(const VECTOR& pos, float searchRadius, VECTOR& outScrapPos);
+	void SpawnRareScrap(const VECTOR& centerPos, float angle, int checkColModel, int count);
 private:
 	//Scrap関数
-	void SpawnNormalScrap(const VECTOR& playerPos, int checkColModel);
-	void SpawnRareScrap(const VECTOR& playerPos, float playerAngle, int checkColModel, int count);
+	void SpawnNormalScrap(const VECTOR& centerPos, int checkColModel);
+
 
 	//衝突判定
+    void CheckAllCollisions(std::vector<CarBase*>& cars);
+    void CheckCarWallHits(std::vector<CarBase*>& cars,int checkColModel);
 	float GetGroundHeight(VECTOR position, int checkColModel);
 	bool IsPositionValid(VECTOR position, int checkColModel, float checkRadius);
 
-	//内部処理
-	void UpdateScraps(float deltaTime, Player& player, int checkColModel);
-	void RemoveExpiredScraps();
-	void RemoveOldestScrap();
-
 	//変数
 	std::vector<Scrap> Scraps;
-	float scrapSpawnTimer;
-	float scrapSpawnInterval;
-	size_t maxScraps;// 最大出現数
 
 	int normalScrapModel = -1;
 	int rareScrapModel = -1;
 
-	bool lastWallHitState = false;
+	float scrapSpawnTimer;
+	float scrapSpawnInterval;
+	size_t maxScraps;// 最大出現数
 
 	//定数
     // NormalScrap生成
@@ -68,5 +67,5 @@ private:
     static constexpr float MAX_GROUND_HEIGHT = 100.0f;
 
     // Scrap上限
-    static constexpr size_t MAX_SCRAPS = 10;
+    static constexpr size_t MAX_SCRAPS = 50;
 };

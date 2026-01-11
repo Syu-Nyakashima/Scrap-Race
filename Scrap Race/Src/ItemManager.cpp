@@ -1,8 +1,9 @@
 #include "ItemManager.h"
 
 
-ItemManager::ItemManager() : scrapSpawnTimer(0.0f),scrapSpawnInterval(NORMAL_SCRAP_SPAWN_INTERVAL),
-							 maxScraps(MAX_SCRAPS),normalScrapModel(-1),rareScrapModel(-1),lastWallHitState(false)
+ItemManager::ItemManager() 
+	: scrapSpawnTimer(0.0f),scrapSpawnInterval(NORMAL_SCRAP_SPAWN_INTERVAL),
+	  maxScraps(MAX_SCRAPS),normalScrapModel(-1),rareScrapModel(-1)
 {
 }
 
@@ -17,9 +18,8 @@ void ItemManager::Initialize()
 	scrapSpawnTimer = 0.0f;
 	scrapSpawnInterval = NORMAL_SCRAP_SPAWN_INTERVAL;
 	maxScraps = MAX_SCRAPS;
-	lastWallHitState = false;
 
-	//normalScrapModel = MV1LoadModel("Data/Model/Scrap_Normal.mv1");
+	//normalScrapModel = MV1LoadModel("Data/Model/NormalScrap.mv1");
 	//if (normalScrapModel == -1) printfDx("normalScrapモデル読み込み失敗！\n");
 	//rareScrapModel = MV1LoadModel("Data/Model/Scrap_Rare.mv1");
 	//if (rareScrapModel == -1) printfDx("rareScrapモデル読み込み失敗！\n");
@@ -34,31 +34,32 @@ void ItemManager::Terminate()
 	Scraps.clear();
 }
 
-void ItemManager::Update(const VECTOR& playerPos, float playerAngle,float deltaTime,Player& player, int checkColModel)
+void ItemManager::Update(float deltaTime, int checkColModel, std::vector<CarBase*>& cars)
 {
+	if (cars.empty()) return;
+
 	//タイマー更新
 	scrapSpawnTimer += deltaTime;
 
 	//プレイヤーの周りにスクラップ出現
 	if (scrapSpawnTimer >= scrapSpawnInterval) {
-		SpawnNormalScrap(playerPos, checkColModel);
+
+		for (int i = 0; i < cars.size(); i++) {
+			SpawnNormalScrap(cars[i]->GetPosition(), checkColModel);
+		}
+	
 		scrapSpawnTimer = 0.0f;
 	}
 
-	// 壁に当たった瞬間にRareScrapを生成
-	bool nowWallHitState = player.hitWall;
-
-	if (nowWallHitState&&!lastWallHitState) {
-		SpawnRareScrap(playerPos, playerAngle, checkColModel, 3);
-	}
-
-	lastWallHitState = nowWallHitState;
+	// 壁衝突でRareスクラップ生成
+	CheckCarWallHits(cars, checkColModel);
 
 	//スクラップがある間更新
 	for (auto& scrap : Scraps) {
-		scrap.Update(deltaTime,checkColModel);
-		scrap.CheckCollision(player);
+		scrap.Update(deltaTime, checkColModel);
 	}
+
+	CheckAllCollisions(cars);
 
 	//時間経過、または取得で消滅
 	Scraps.erase(
@@ -68,11 +69,56 @@ void ItemManager::Update(const VECTOR& playerPos, float playerAngle,float deltaT
 	);
 }
 
+void ItemManager::CheckAllCollisions(std::vector<CarBase*>& cars)
+{
+	for (auto& scrap : Scraps) {
+		for (auto* car : cars)
+		{
+			if (car != nullptr && car->IsAlive())
+			{
+				scrap.CheckCollision(*car);
+			}
+		}
+	}
+}
+
+void ItemManager::CheckCarWallHits(std::vector<CarBase*>& cars, int checkColModel)
+{
+	for (auto* car : cars)
+	{
+		if (car->JustHitWall())
+		{
+			SpawnRareScrap(car->GetPosition(),car->GetAngle(),checkColModel,3);
+		}
+	}
+}
+
 void ItemManager::Draw()
 {
 	for (auto& scrap : Scraps) {
 		scrap.Draw();
 	}
+}
+
+bool ItemManager::FindNearestScrap(const VECTOR& pos, float searchRadius, VECTOR& outScrapPos)
+{
+	float nearestDist = searchRadius;
+	bool found = false;
+
+	for (const auto& scrap : Scraps)
+	{
+		if (scrap.IsCollected()) continue;
+
+		float dist = VSize(VSub(scrap.GetPosition(), pos));
+		if (dist < nearestDist)
+		{
+			nearestDist = dist;
+			outScrapPos = scrap.GetPosition();
+			found = true;
+		}
+	}
+
+	return found;
 }
 
 void ItemManager::SpawnNormalScrap(const VECTOR& playerPos,int checkColModel)
@@ -160,8 +206,6 @@ void ItemManager::SpawnRareScrap(const VECTOR& playerPos, float playerAngle, int
 			spawned++;
 		}
 	}
-
-	printfDx("Rare Scrap×%d 飛び散り生成！\n", spawned);
 }
 
 float ItemManager::GetGroundHeight(VECTOR position, int checkColModel)

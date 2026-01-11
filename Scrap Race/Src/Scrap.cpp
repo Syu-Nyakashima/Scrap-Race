@@ -1,4 +1,5 @@
 #include "Scrap.h"
+#include "CarBase.h"
 
 namespace {
 	// 物理パラメータ
@@ -11,11 +12,23 @@ void Scrap::Initialize(const VECTOR& position, ScrapType scraptype, int normalMo
 	pos = position;
 	lifetime=10.0f;
 	type = scraptype;
+	collected = false;
+	invincibleTime = 0.0f;
 
 	//type別回復量変化
 	switch (type) {
-	case ScrapType::Normal: healAmount = 5.0f; break;
-	case ScrapType::Rare:   healAmount = 10.0f; break;
+	case ScrapType::Normal: 
+		healAmount = 5.0f; 
+		spdMaxBoost = 5.0f;
+		spdUpBoost = 0.05f;
+		spdDownBoost = 0.05f;
+		break;
+	case ScrapType::Rare:
+		healAmount = 15.0f;
+		spdMaxBoost = 10.0f;
+		spdUpBoost = 0.1f;
+		spdDownBoost = 0.1f;
+		break;
 	}
 
 	//type別モデル変化
@@ -99,14 +112,30 @@ void Scrap::Draw()
 }
 
 //scrap取得関数
-void Scrap::CheckCollision(Player& player)
+void Scrap::CheckCollision(CarBase& car)
 {
 	if (invincibleTime > 0.0f) return;
+	if (collected) return;
 
-	float dist = VSize(VSub(pos, player.pos));
-	if (dist < radius + player.radius) {
+	float dist = VSize(VSub(pos, car.pos));
+	if (dist < radius + car.capsuleRadius) 
+	{
 		collected = true;
-		player.Heal(healAmount);
+		car.Heal(healAmount);
+		int randomStat = rand() % 2;  // 0 or 1
+
+		if (randomStat == 0)
+		{
+			// 最高速度UP
+			car.BoostStatus(spdMaxBoost, 0.0f);
+			printfDx("Scrap取得！ HP+%.1f, SpdMax+%.1f\n", healAmount, spdMaxBoost);
+		}
+		else
+		{
+			// 加速力UP
+			car.BoostStatus(0.0f, spdUpBoost);
+			printfDx("Scrap取得！ HP+%.1f, SpdUp+%.2f\n", healAmount, spdUpBoost);
+		}
 	}
 }
 

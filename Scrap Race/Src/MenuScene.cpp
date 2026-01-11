@@ -14,11 +14,15 @@ MenuScene::~MenuScene()
 void MenuScene::Initialize() 
 {
 	selectedMenu = 0;
+
+    MenuImage = LoadGraph("Data/Image/Menu_1.png");
+    MenuSelectFrame = LoadGraph("Data/Image/MenuFrame.png");
 }
 
 void MenuScene::Terminate() 
 {
-
+    DeleteGraph(MenuImage);
+    DeleteGraph(MenuSelectFrame);
 }
 
 void MenuScene::Update() 
@@ -34,23 +38,11 @@ void MenuScene::Update()
 
 void MenuScene::Draw() 
 {
-    SetBackgroundColor(0, 0, 0);
     ClearDrawScreen();
 
-    // タイトル
-    DrawString(400, 100, "Menu", GetColor(0, 255, 0));
+    DrawExtendGraph(0, 0, 1280, 720, MenuImage, true);
 
-    // メニュー
-    int menuY = 400;
-    const char* menuText[] = { "SOLO", "MALTI", "TITLE" };
-
-    for (int i = 0; i < MENU_MAX; i++)
-    {
-        unsigned int color = (i == selectedMenu) ? GetColor(255, 255, 0) : GetColor(200, 200, 200);
-        DrawString(450, menuY + i * 40, menuText[i], color);
-    }
-
-    DrawString(420, menuY + selectedMenu * 40, "→", GetColor(255, 255, 0));
+    DrawExtendGraph(selectedMenu * 37, selectedMenu * 140, selectedMenu * 37 + 1280, selectedMenu * 140 + 720, MenuSelectFrame, true);
 
     ScreenFlip();
 }

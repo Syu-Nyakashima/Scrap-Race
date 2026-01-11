@@ -2,6 +2,7 @@
 #include "SceneManager.h"
 #include "Result.h"
 #include "DxLib.h"
+
 #include <windows.h>
 #include "imgui.h"
 #include "imgui_impl_win32.h"
@@ -10,21 +11,77 @@
 PlayScene::PlayScene() : player(stage)
 {
     //オブジェクトの構築、メンバ変数の初期化
+     // 敵を3台生成(例)
+    enemies.push_back(new EnemyCPU(stage, AIDifficulty::Easy, AIType::Attack));
+    enemies.push_back(new EnemyCPU(stage, AIDifficulty::Normal, AIType::Balance));
+    enemies.push_back(new EnemyCPU(stage, AIDifficulty::Hard, AIType::Defense));
+    enemies.push_back(new EnemyCPU(stage, AIDifficulty::Normal, AIType::ScrapHunter));
 }
 
 PlayScene::~PlayScene()
-{   
+{
+    for (auto* enemy : enemies) {
+        delete enemy;
+    }
+    enemies.clear();
+
+    DeleteGraph(SpeedMeter);
+    DeleteGraph(MeterNeedle);
 }
 
 void PlayScene::Initialize()
 {
+    SpeedMeter = LoadGraph("Data/Image/SpeedMeter.png");
+    MeterNeedle = LoadGraph("Data/Image/meterneedle.png");
+
     stage.Initialize();
     player.Initialize();
     camera.Initialize();
     itemManager.Initialize();
 
+    // 敵の初期化
+    for (int i = 0; i < enemies.size(); i++)
+    {
+        enemies[i]->Initialize();
+
+        // 初期位置をずらす
+        enemies[i]->pos = VGet(-5.0f * (i + 1), 10.0f, -10.0f);
+
+        // ウェイポイント設定
+        std::vector<VECTOR> waypoints = {
+            VGet(-100.0f, 0.0f, -15.0f),
+            VGet(-100.0f, 0.0f, -250.0f),
+            VGet(100.0f, 0.0f, -250.0f),
+            VGet(100.0f, 0.0f, -15.0f)
+        };
+        enemies[i]->SetWaypoints(waypoints);
+    }
+
+    // Car配列を構築(PlaySceneで管理)
+    BuildCarList();
+
     oldTime = GetNowCount();
     totalTime = 0.0f;
+}
+
+//全Car情報リスト生成
+void PlayScene::BuildCarList()
+{
+    allCars.clear();
+
+    // リストの最初にプレイヤーを追加
+    allCars.push_back(&player);
+
+    // 敵を追加
+    for (auto* enemy : enemies) {
+        allCars.push_back(enemy);
+    }
+
+    // 各車両にリストを設定
+    for (auto* car : allCars)
+    {
+        car->SetCarList(&allCars);
+    }
 }
 
 void PlayScene::Terminate() 
@@ -32,6 +89,15 @@ void PlayScene::Terminate()
     stage.Terminate();
     camera.Terminate();
     itemManager.Terminate();
+
+    for (auto* enemy : enemies) {
+        enemy->Terminate();
+    }
+
+    allCars.clear();
+
+    DeleteGraph(SpeedMeter);
+    DeleteGraph(MeterNeedle);
 }
 
 //-------------------------------------------------------------
@@ -60,26 +126,30 @@ void PlayScene::Update()
 void PlayScene::Draw()
 {
     //DxLib更新開始
-    SetBackgroundColor(140, 140, 140);
+    SetBackgroundColor(0, 140, 255);
     ClearDrawScreen();
 
-    //StageのUpdate
-    stage.Draw();
-
     //Draw処理
+    stage.Draw();
     player.Draw();
+
+    // 敵描画
+    for (auto* enemy : enemies)
+    {
+        if (enemy->IsAlive())
+        {
+            enemy->Draw();
+        }
+    }
+
     itemManager.Draw();
 
     //UI
-    if (stage.CheckGoal(player.pos))
-    {
-        DrawString(0, 0, "GOAL!", GetColor(255, 255, 0));
-    }
+    DrawGraph(800,480,SpeedMeter,true);
 
-    if (player.Hp <= 0.0f) {
-        printfDx("ゲームオーバー\n");
-    }
+    DrawRotaGraph(1030, 660, 1.0f, DX_PI_F / 180.0f*allCars[0]->moveSpeed, MeterNeedle, true);
 
+    //ImGui
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
@@ -94,10 +164,32 @@ void PlayScene::Draw()
 
 void PlayScene::UpdateGame()
 {
+    //プレイヤー更新
     player.Update(deltaTime);
+    //敵更新
+    for (auto* enemy : enemies) 
+    {
+        if (enemy->IsAlive()) 
+        {
+            //更新
+            enemy->Update(deltaTime);
+
+            // 敵に最も近いスクラップを通知
+            VECTOR nearestScrap;
+            if (itemManager.FindNearestScrap(enemy->GetPosition(), 20.0f, nearestScrap))
+            {
+                enemy->SetNearestScrap(nearestScrap);
+            }
+            else
+            {
+                enemy->ClearNearestScrap();
+            }
+        }
+    }
+
     camera.Update(player, deltaTime);
-    itemManager.Update(player.pos, player.angle, deltaTime, player, stage.GetCheckColModel());
     stage.Update();
+    itemManager.Update(deltaTime, stage.GetCheckColModel(), allCars);
 }
 
 
@@ -153,11 +245,11 @@ void PlayScene::DrawPlayerDebugUI()
     static float cameraNear = 0.1f;
     static float cameraFar = 500.0f;
 
-    ImGui::SliderFloat("Distance", &cameraDistance, 0.0f, 150.0f);
-    ImGui::SliderFloat("Height", &cameraHeight, 0.0f, 100.0f);
-    ImGui::SliderFloat("Target Offset Y", &targetOffsetY, -20.0f, 20.0f);
-    ImGui::SliderFloat("cameraNear", &cameraNear, 0.0f, 1000.0f);
-    ImGui::SliderFloat("cameraFar", &cameraFar, 0.0f, 1000.0f);
+    ImGui::SliderFloat("Distance", &cameraDistance, 0.0f, 1500.0f);
+    ImGui::SliderFloat("Height", &cameraHeight, 0.0f, 1000.0f);
+    ImGui::SliderFloat("Target Offset Y", &targetOffsetY, -20.0f, 1020.0f);
+    ImGui::SliderFloat("cameraNear", &cameraNear, 0.0f, 10000.0f);
+    ImGui::SliderFloat("cameraFar", &cameraFar, 0.0f, 10000.0f);
     // 値をCameraクラスに渡す（TPS視点用に）
     camera.SetDebugCameraParams(cameraDistance, cameraHeight, targetOffsetY, cameraNear, cameraFar);
 
@@ -176,6 +268,7 @@ void PlayScene::DrawPlayerDebugUI()
     ImGui::Separator();
     ImGui::Text("Status");
     ImGui::InputFloat("Move Speed", &player.moveSpeed, 0.0f, 100.0f);
+    ImGui::InputFloat("Move Speed", &player.SpdMax, 0.0f, 100.0f);
     ImGui::InputFloat("HP", &player.Hp, 0.0f, 100.0f);
 
     // 位置リセット

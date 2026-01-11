@@ -8,9 +8,6 @@ public:
 	void Terminate();
 	void Update(const Player& player, float delta);
 
-	// デバッグ切り替え
-	void ToggleDebugOverView();
-
 	void SetDebugCameraParams(float dist, float height, float offsetY,float Near,float Far) {
 		debugDist = dist;
 		debugHeight = height;
@@ -25,6 +22,11 @@ public:
 	float		Far;
 	VECTOR		Eye;				// カメラ座標
 	VECTOR		Target;				// 注視点座標
+
+	VECTOR smoothEye;
+	VECTOR smoothTarget;
+
+	static constexpr float CAMERA_LERP_SPEED = 7.0f;
 
 	bool isDebugOverView;  // 上視点デバッグフラグ
 

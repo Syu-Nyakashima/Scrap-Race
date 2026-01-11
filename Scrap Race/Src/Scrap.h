@@ -1,7 +1,7 @@
 #pragma once
 #include "DxLib.h"
-#include <vector>
-#include "Player.h"
+
+class CarBase;
 
 enum class ScrapType {
 	Normal,
@@ -15,19 +15,31 @@ public:
 
 	void Update(float deltaTime,int checkColModel);
 	void Draw();
-	bool IsExpired() const { return lifetime <= 0.0f || collected; }
-	void CheckCollision(Player& player);
+
+	void CheckCollision(CarBase& car);
+
 	void SetVelocity(const VECTOR& velocity);
 	void SetInvincibleTime(float time);
+
+	bool IsExpired() const { return lifetime <= 0.0f || collected; }
+	bool IsCollected() const { return collected; }
+
+	VECTOR GetPosition() const { return pos; }
 private:
 	VECTOR pos;
 	VECTOR vel;
 
-	float lifetime = 10.0f;
-	float invincibleTime = 0.0f;
+	float lifetime = 10.0f; 
+	float invincibleTime = 0.0f; //生成後の無敵時間
 	float radius = 2.0f; // 衝突判定用
-	float healAmount = 0.0f;
+	float healAmount = 5.0f;
+
 	ScrapType type;
 	int modelHandle = -1;
 	bool collected = false;
+
+	//ステータス回復
+	float spdMaxBoost = 5.0f;
+	float spdUpBoost = 0.05f;
+	float spdDownBoost = 0.05f;
 };
