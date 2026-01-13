@@ -27,4 +27,6 @@ private:
 
 	int MenuImage;
 	int MenuSelectFrame;
+
+	bool isEnding = false;
 };

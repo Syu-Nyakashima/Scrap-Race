@@ -11,12 +11,11 @@ public:
 	void Update();
 	void Draw();
 
-	bool CheckGoal(VECTOR playerPos);
-
 	int GetCheckColModel() const { return CheckColModel; }
 
-	bool CheckCheckpoint(VECTOR carPos, int currentCheckpoint);
+	bool IsInsideCheckpoint(VECTOR carPos, int currentCheckpoint);
 	int GetTotalCheckpoints() const { return (int)checkpoints.size(); }
+	VECTOR GetCheckpointPos(int index) const;
 	void DrawCheckpoints() const;
 
 private:

@@ -108,11 +108,11 @@
     <ClCompile Include="Src\MenuScene.cpp">
       <Filter>ソース ファイル\Scene\Menu</Filter>
     </ClCompile>
-    <ClCompile Include="Src\EnemyCPU.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="Src\CarBase.cpp">
       <Filter>ソース ファイル\RaceCar\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\EnemyCPU.cpp">
+      <Filter>ソース ファイル\RaceCar\Enemy</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

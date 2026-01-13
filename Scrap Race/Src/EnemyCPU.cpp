@@ -43,7 +43,6 @@ EnemyCPU::EnemyCPU(Stage& stageRef, AIDifficulty diff, AIType type)
 
 EnemyCPU::~EnemyCPU()
 {
-    Terminate();
 }
 
 void EnemyCPU::Initialize()
@@ -52,7 +51,7 @@ void EnemyCPU::Initialize()
 
     //ModelHandle = MV1LoadModel();
     if (ModelHandle == -1) {
-        printfDx("敵モデル読み込み失敗！プレイヤーモデル使用\n");
+        //printfDx("敵モデル読み込み失敗！プレイヤーモデル使用\n");
         ModelHandle = MV1LoadModel("Data/Model/free_car_1.mv1");
     }
 
@@ -170,15 +169,15 @@ void EnemyCPU::UpdateWaypointNavigation()
     {
         currentWaypointIndex = (currentWaypointIndex + 1) % waypoints.size();
         lastWaypointDist = 99999.0f;
-        printfDx("Enemy reached waypoint %d\n", currentWaypointIndex);
+        //printfDx("Enemy reached waypoint %d\n", currentWaypointIndex);
         return;
     }
     
     if (distToWaypoint > lastWaypointDist + 1.0f) // 逆走検出
     {
         currentWaypointIndex = (currentWaypointIndex + 1) % waypoints.size();
-       printfDx("Enemyウェイポイントスキップ %d (moving away: %.1f -> %.1f)\n",
-            currentWaypointIndex, lastWaypointDist, distToWaypoint);
+       //printfDx("Enemyウェイポイントスキップ %d (moving away: %.1f -> %.1f)\n",
+       //     currentWaypointIndex, lastWaypointDist, distToWaypoint);
         lastWaypointDist = 99999.0f;  // リセット
     }
     else
@@ -233,7 +232,7 @@ void EnemyCPU::OnWallHit()
 {
     wallHitRecoveryTimer = WALL_RECOVERY_TIME;
     moveSpeed = 0.0f;  // 一旦停止
-    printfDx("Enemy hit wall! Starting recovery...\n");
+    //printfDx("Enemy hit wall! Starting recovery...\n");
 }
 
 void EnemyCPU::RecoverFromWallHit(float delta)
@@ -355,7 +354,7 @@ void EnemyCPU::TriggerRandomError()
         isInError = true;
         errorTimer = errorDuration;
 
-        printfDx("Enemy Error! (%.1f秒)\n", errorDuration);
+       // printfDx("Enemy Error! (%.1f秒)\n", errorDuration);
     }
 }
 
@@ -399,7 +398,7 @@ float EnemyCPU::CalculateTargetSpeed() const
     while (angleDiff > 180.0f) angleDiff -= 360.0f;
     angleDiff = fabsf(angleDiff);
 
-    // ← 修正: 常に最高速を目指す(aggressiveness補正を削除)
+    // 常に最高速を目指す(aggressiveness補正を削除)
     float baseSpeed = SpdMax;
 
     // コーナリングスキルによって減速度を調整

@@ -27,17 +27,43 @@ void Stage::Initialize()
     // ゴールモデル
     GoalModelHandle = MV1LoadModel("Data/Stage/goal.mv1");
     if (GoalModelHandle == -1) printfDx("ゴールモデル読み込み失敗\n");
-    MV1SetPosition(GoalModelHandle, VGet(120.0f, 0, -50.0f));
+    MV1SetPosition(GoalModelHandle, VGet(0.0f, 0, 0.0f));
+    MV1SetRotationXYZ(GoalModelHandle, VGet(0.0f, 90.0f, 0.0f));
     MV1SetScale(GoalModelHandle, VGet(1.0f, 0.5f, 1.0f));
 
-    GoalPos = VGet(120.0f, 0, -50.0f);
-    GoalWidth = 100.0f;
-    GoalHeight = 50.0f;
-    GoalDepth = 10.0f;
-    isGoal = false;
-    bool wasInside = false;
-    float inZ = 0.0f;
-    float outZ = 0.0f;
+    checkpoints.clear();
+
+    Checkpoint cp;
+
+    // CP0: スタート地点
+    cp.pos = VGet(0.0f, 0.0f, 0.0f);
+    cp.width = 200.0f;
+    cp.height = 100.0f;
+    cp.depth = 100.0f;
+    checkpoints.push_back(cp);
+
+    // CP1: 第1コーナー
+    cp.pos = VGet(-100.0f, 0.0f, -100.0f);
+    cp.width = 200.0f;
+    cp.height = 50.0f;
+    cp.depth = 30.0f;
+    checkpoints.push_back(cp);
+
+    // CP2: 第2コーナー
+    cp.pos = VGet(50.0f, 0.0f, -200.0f);
+    cp.width = 30.0f;
+    cp.height = 50.0f;
+    cp.depth = 200.0f;
+    checkpoints.push_back(cp);
+
+    // CP3: 第3コーナー
+    cp.pos = VGet(50.0f, 0.0f, -50.0f);
+    cp.width = 200.0f;
+    cp.height = 50.0f;
+    cp.depth = 30.0f;
+    checkpoints.push_back(cp);
+
+    //printfDx("Checkpoints initialized: %d points\n", (int)checkpoints.size());
 }
 
 void Stage::Terminate()
@@ -60,67 +86,6 @@ void Stage::Terminate()
 
 void Stage::Update()
 {
-    
-    // ===== 地面を描画 =====
-    /*
-    VECTOR p1 = VGet(-10.0f, 0.0f, -10.0f);
-    VECTOR p2 = VGet(10.0f, 0.0f, -10.0f);
-    VECTOR p3 = VGet(-10.0f, 0.0f, 10.0f);
-    VECTOR p4 = VGet(10.0f, 0.0f, 10.0f);
-    int groundColor = GetColor(100, 200, 100);
-    DrawTriangle3D(p1, p2, p3, groundColor, TRUE);
-    DrawTriangle3D(p3, p2, p4, groundColor, TRUE);
-    
-    // ===== 左の壁 =====
-    VECTOR lw1 = VGet(-50.0f, 0.0f, -200.0f);
-    VECTOR lw2 = VGet(-50.0f, 3.0f, -200.0f);
-    VECTOR lw3 = VGet(-50.0f, 0.0f, 200.0f);
-    VECTOR lw4 = VGet(-50.0f, 3.0f, 200.0f);
-    int wallColor = GetColor(150, 150, 150);
-    DrawTriangle3D(lw1, lw2, lw3, wallColor, TRUE);
-    DrawTriangle3D(lw3, lw2, lw4, wallColor, TRUE);
-
-    // ===== 右の壁 =====
-    VECTOR rw1 = VGet(50.0f, 0.0f, -200.0f);
-    VECTOR rw2 = VGet(50.0f, 3.0f, -200.0f);
-    VECTOR rw3 = VGet(50.0f, 0.0f, 200.0f);
-    VECTOR rw4 = VGet(50.0f, 3.0f, 200.0f);
-    DrawTriangle3D(rw1, rw3, rw2, wallColor, TRUE);
-    DrawTriangle3D(rw3, rw4, rw2, wallColor, TRUE);
-
-    for (float z = -200; z < 200; z+=10.0f) {
-        DrawCone3D(VGet(51.0f, 10.0f, z), VGet(51.0f, 0.0f, z), 3.0f, 16, GetColor(0, 0, 255), GetColor(255, 255, 255), TRUE);
-        DrawCone3D(VGet(-51.0f, 10.0f, z), VGet(-51.0f, 0.0f, z), 3.0f, 16, GetColor(0, 0, 255), GetColor(255, 255, 255), TRUE);
-    }
-    */
-
-    //ゴール判定(デバッグ用)
-    //上面
-    DrawLine3D(VGet(GoalPos.x - GoalWidth / 2, 25.0f, GoalPos.z - GoalDepth / 2),
-        VGet(GoalPos.x + GoalWidth / 2, 25.0f, GoalPos.z - GoalDepth / 2),
-        GetColor(255, 255, 0));
-    DrawLine3D(VGet(GoalPos.x + GoalWidth / 2, 25.0f, GoalPos.z - GoalDepth / 2),
-        VGet(GoalPos.x + GoalWidth / 2, 25.0f, GoalPos.z + GoalDepth / 2),
-        GetColor(255, 255, 0));
-    DrawLine3D(VGet(GoalPos.x + GoalWidth / 2, 25.0f, GoalPos.z + GoalDepth / 2),
-        VGet(GoalPos.x - GoalWidth / 2, 25.0f, GoalPos.z + GoalDepth / 2),
-        GetColor(255, 255, 0));
-    DrawLine3D(VGet(GoalPos.x - GoalWidth / 2, 25.0f, GoalPos.z + GoalDepth / 2),
-        VGet(GoalPos.x - GoalWidth / 2, 25.0f, GoalPos.z - GoalDepth / 2),
-        GetColor(255, 255, 0));
-
-    DrawLine3D(VGet(GoalPos.x - GoalWidth / 2, 0.0f, GoalPos.z - GoalDepth / 2),
-        VGet(GoalPos.x - GoalWidth / 2, 25.0f, GoalPos.z - GoalDepth / 2),
-        GetColor(255, 255, 0));
-    DrawLine3D(VGet(GoalPos.x + GoalWidth / 2, 0.0f, GoalPos.z - GoalDepth / 2),
-        VGet(GoalPos.x + GoalWidth / 2, 25.0f, GoalPos.z - GoalDepth / 2),
-        GetColor(255, 255, 0));
-    DrawLine3D(VGet(GoalPos.x + GoalWidth / 2, 0.0f, GoalPos.z + GoalDepth / 2),
-        VGet(GoalPos.x + GoalWidth / 2, 25.0f, GoalPos.z + GoalDepth / 2),
-        GetColor(255, 255, 0));
-    DrawLine3D(VGet(GoalPos.x - GoalWidth / 2, 0.0f, GoalPos.z + GoalDepth / 2),
-        VGet(GoalPos.x - GoalWidth / 2, 25.0f, GoalPos.z + GoalDepth / 2),
-        GetColor(255, 255, 0));
 }
 
 void Stage::Draw()
@@ -132,37 +97,70 @@ void Stage::Draw()
     MV1DrawModel(GoalModelHandle);
 }
 
-bool Stage::CheckGoal(VECTOR playerPos)
+bool Stage::IsInsideCheckpoint(VECTOR carPos, int currentCheckpoint)
 {
-    if (isGoal) return true;
+    if (checkpoints.empty()) return false;
 
-    float hw = GoalWidth / 2.0f;
-    float hh = GoalHeight / 2.0f;
-    float hd = GoalDepth / 2.0f;
+    // 次のチェックポイントをチェック
+    int nextCheckpoint = (currentCheckpoint + 1) % checkpoints.size();
+    const Checkpoint& cp = checkpoints[nextCheckpoint];
 
-    //ゴール判定の内側にいるか
-    bool nowInside =
-        playerPos.x > GoalPos.x - hw &&
-        playerPos.x < GoalPos.x + hw &&
-        playerPos.y > GoalPos.y - hh &&
-        playerPos.y < GoalPos.y + hh &&
-        playerPos.z > GoalPos.z - hd &&
-        playerPos.z < GoalPos.z + hd;
+    // チェックポイント内にいるか判定
+    float hw = cp.width / 2.0f;
+    float hh = cp.height / 2.0f;
+    float hd = cp.depth / 2.0f;
 
-    if (!wasInside && nowInside) {
-        inZ = playerPos.z;
+    bool inside =
+        carPos.x > cp.pos.x - hw &&
+        carPos.x < cp.pos.x + hw &&
+        carPos.y > cp.pos.y - hh &&
+        carPos.y < cp.pos.y + hh &&
+        carPos.z > cp.pos.z - hd &&
+        carPos.z < cp.pos.z + hd;
+
+    return inside;
+}
+
+VECTOR Stage::GetCheckpointPos(int index) const
+{
+    if (index < 0 || index >= checkpoints.size())
+    {
+        return VGet(0.0f, 0.0f, 0.0f);
     }
+    return checkpoints[index].pos;
+}
 
-    if (wasInside && !nowInside) {
-        outZ = playerPos.z;
+void Stage::DrawCheckpoints() const
+{
+    for (int i = 0; i < checkpoints.size(); i++)
+    {
+        const Checkpoint& cp = checkpoints[i];
 
-        if (inZ < outZ) {
-            isGoal = true;
-            return true;
-        }
+        // CP0は赤、それ以外は青
+        int color = (i == 0) ? GetColor(255, 0, 0) : GetColor(0, 150, 255);
 
+        float hw = cp.width / 2.0f;
+        float hh = cp.height / 2.0f;
+        float hd = cp.depth / 2.0f;
+
+        // 上面
+        DrawLine3D(VGet(cp.pos.x - hw, cp.pos.y + hh, cp.pos.z - hd),
+            VGet(cp.pos.x + hw, cp.pos.y + hh, cp.pos.z - hd), color);
+        DrawLine3D(VGet(cp.pos.x + hw, cp.pos.y + hh, cp.pos.z - hd),
+            VGet(cp.pos.x + hw, cp.pos.y + hh, cp.pos.z + hd), color);
+        DrawLine3D(VGet(cp.pos.x + hw, cp.pos.y + hh, cp.pos.z + hd),
+            VGet(cp.pos.x - hw, cp.pos.y + hh, cp.pos.z + hd), color);
+        DrawLine3D(VGet(cp.pos.x - hw, cp.pos.y + hh, cp.pos.z + hd),
+            VGet(cp.pos.x - hw, cp.pos.y + hh, cp.pos.z - hd), color);
+
+        // 縦線
+        DrawLine3D(VGet(cp.pos.x - hw, cp.pos.y - hh, cp.pos.z - hd),
+            VGet(cp.pos.x - hw, cp.pos.y + hh, cp.pos.z - hd), color);
+        DrawLine3D(VGet(cp.pos.x + hw, cp.pos.y - hh, cp.pos.z - hd),
+            VGet(cp.pos.x + hw, cp.pos.y + hh, cp.pos.z - hd), color);
+        DrawLine3D(VGet(cp.pos.x + hw, cp.pos.y - hh, cp.pos.z + hd),
+            VGet(cp.pos.x + hw, cp.pos.y + hh, cp.pos.z + hd), color);
+        DrawLine3D(VGet(cp.pos.x - hw, cp.pos.y - hh, cp.pos.z + hd),
+            VGet(cp.pos.x - hw, cp.pos.y + hh, cp.pos.z + hd), color);
     }
-
-    wasInside = nowInside;
-    return false;
 }

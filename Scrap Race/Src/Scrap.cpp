@@ -128,13 +128,13 @@ void Scrap::CheckCollision(CarBase& car)
 		{
 			// 最高速度UP
 			car.BoostStatus(spdMaxBoost, 0.0f);
-			printfDx("Scrap取得！ HP+%.1f, SpdMax+%.1f\n", healAmount, spdMaxBoost);
+			//printfDx("Scrap取得！ HP+%.1f, SpdMax+%.1f\n", healAmount, spdMaxBoost);
 		}
 		else
 		{
 			// 加速力UP
 			car.BoostStatus(0.0f, spdUpBoost);
-			printfDx("Scrap取得！ HP+%.1f, SpdUp+%.2f\n", healAmount, spdUpBoost);
+			//printfDx("Scrap取得！ HP+%.1f, SpdUp+%.2f\n", healAmount, spdUpBoost);
 		}
 	}
 }

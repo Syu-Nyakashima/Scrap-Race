@@ -41,6 +41,9 @@ void CarBase::Initialize()
     onGround = false;
     isGoal = false;
     justHitWall = false;
+
+    currentLap = 1;
+    currentCheckpoint = 0;
 }
 
 void CarBase::Terminate()
@@ -62,12 +65,6 @@ void CarBase::Draw()
 
     MV1SetMatrix(ModelHandle, matWorld);
     MV1DrawModel(ModelHandle);
-
-    VECTOR capsuleTop = VAdd(pos, VGet(0.0f, capsuleHeight * 0.4f, 0.0f));
-    VECTOR capsuleBottom = VAdd(pos, VGet(0.0f, -capsuleHeight * 0.2f, 0.0f));
-
-    DrawCapsule3D(capsuleTop, capsuleBottom, capsuleRadius,
-        8, GetColor(0, 255, 0), GetColor(255, 255, 255), FALSE);
 }
 
 void CarBase::Heal(float amount) 
@@ -83,8 +80,8 @@ void CarBase::BoostStatus(float spdMaxBoost, float spdUpBoost)
     SpdMax += spdMaxBoost;
     SpdUp += spdUpBoost;
 
-    if (SpdMax > 250.0f) SpdMax = 200.0f;
-    if (SpdUp > 2.0f) SpdUp = 2.0f;
+    if (SpdMax > MAX_SPD_MAX) SpdMax = MAX_SPD_MAX;
+    if (SpdUp > MAX_SPD_UP) SpdUp = MAX_SPD_UP;
 }
 
 void CarBase::DrainStatusOverTime(float delta)
@@ -172,10 +169,6 @@ bool CarBase::CheckGroundPoint(int CheckColModel, VECTOR checkPos, float& outGro
     MV1_COLL_RESULT_POLY HitPoly = MV1CollCheck_Line(
         CheckColModel, -1, lineStart, lineEnd
     );
-
-    // デバッグ表示
-    int lineColor = (HitPoly.HitFlag == 1) ? GetColor(0, 255, 0) : GetColor(255, 0, 0);
-    DrawLine3D(lineStart, lineEnd, lineColor);
 
     if (HitPoly.HitFlag == 1)
     {
@@ -287,7 +280,7 @@ void CarBase::ProcessWallCollision(const MV1_COLL_RESULT_POLY_DIM& HitPolyDim)
         //異常な押し出しの検出
         if (pushDistance > 10.0f)
         {
-            printfDx("WARNING: Large push detected: %.2f\n", pushDistance);
+            //printfDx("WARNING: Large push detected: %.2f\n", pushDistance);
             pos = VGet(0.0f, 20.0f, 0.0f);
             vel = VGet(0.0f, 0.0f, 0.0f);
             moveSpeed = 0.0f;
@@ -405,7 +398,7 @@ void CarBase::ProcessCarCollision(CarBase* otherCar,float currentDist)
         float damage = relativeSpeed * CAR_COLLISION_DAMAGE_MULTIPLIER;
         if (damage > 0.1f) {  // 最低ダメージ閾値
             Hp -= damage;
-            printfDx("衝突 Damage: %.2f (RelSpeed: %.1f)\n", damage, relativeSpeed);
+            //printfDx("衝突 Damage: %.2f (RelSpeed: %.1f)\n", damage, relativeSpeed);
         }
 
         // 自分の進行方向
@@ -434,13 +427,13 @@ void CarBase::ProcessCarCollision(CarBase* otherCar,float currentDist)
         {
             // パターン1: 自分だけ動いている → 自分が当たった
             ReflectVelocity(collisionDir, mySpeed);
-            printfDx("Car collision: I HIT stationary car (speed: %.1f)\n", mySpeed);
+            //printfDx("Car collision: I HIT stationary car (speed: %.1f)\n", mySpeed);
         }
         else if (!MovingMe && MovingOther)
         {
             // パターン2: 相手だけ動いている → 当てられた
             GetPushed(collisionDir, otherSpeed);
-            printfDx("Car collision: I GOT HIT (pushed by: %.1f)\n", otherSpeed);
+            //printfDx("Car collision: I GOT HIT (pushed by: %.1f)\n", otherSpeed);
         }
         else if (MovingMe && MovingOther)
         {
@@ -449,13 +442,13 @@ void CarBase::ProcessCarCollision(CarBase* otherCar,float currentDist)
             {
                 // 自分が向かっている、相手は逃げている → 自分が当たった
                 ReflectVelocity(collisionDir, mySpeed);
-                printfDx("Car collision: I HIT moving car (speed: %.1f vs %.1f)\n", mySpeed, otherSpeed);
+                //printfDx("Car collision: I HIT moving car (speed: %.1f vs %.1f)\n", mySpeed, otherSpeed);
             }
             else if (!AttackerMe && AttackerOther)
             {
                 // 相手が向かっている、自分は逃げている → 当てられた
                 GetPushed(collisionDir, otherSpeed);
-                printfDx("Car collision: I GOT HIT by moving car\n");
+                //printfDx("Car collision: I GOT HIT by moving car\n");
             }
             else
             {
@@ -463,7 +456,7 @@ void CarBase::ProcessCarCollision(CarBase* otherCar,float currentDist)
                 if (mySpeed > otherSpeed)
                 {
                     ReflectVelocity(collisionDir, mySpeed);
-                    printfDx("Car collision: HEAD-ON (I'm faster: %.1f > %.1f)\n", mySpeed, otherSpeed);
+                    //printfDx("Car collision: HEAD-ON (I'm faster: %.1f > %.1f)\n", mySpeed, otherSpeed);
                 }
                 else
                 {
@@ -495,17 +488,17 @@ void CarBase::ReflectVelocity(VECTOR collisionDir, float currentSpeed)
     if (absDot > 0.7f) {
         // 正面衝突(角度が小さい) → 大きく減速
         restitution = 0.3f;
-        printfDx("  → HEAD-ON collision (dot: %.2f)\n", dot);
+        //printfDx("  → HEAD-ON collision (dot: %.2f)\n", dot);
     }
     else if (absDot > 0.3f) {
         // 斜め衝突 → 中程度減速
         restitution = 0.7f;
-        printfDx("  → ANGLED collision (dot: %.2f)\n", dot);
+        //printfDx("  → ANGLED collision (dot: %.2f)\n", dot);
     }
     else {
         // 横からの衝突 → ほぼ速度維持
         restitution = 0.95f;
-        printfDx("  → SIDE collision (dot: %.2f)\n", dot);
+        //printfDx("  → SIDE collision (dot: %.2f)\n", dot);
     }
 
     // 反射後の速度
@@ -518,8 +511,8 @@ void CarBase::ReflectVelocity(VECTOR collisionDir, float currentSpeed)
     // 角度更新
     angle = atan2f(reflectDir.x, reflectDir.z) * 180.0f / DX_PI_F;
 
-    printfDx("  → Reflected: %.1f -> %.1f (restitution: %.2f)\n",
-        currentSpeed, newSpeed, restitution);
+    //printfDx("  → Reflected: %.1f -> %.1f (restitution: %.2f)\n",
+    //    currentSpeed, newSpeed, restitution);
 }
 
 
@@ -556,11 +549,11 @@ void CarBase::GetPushed(VECTOR collisionDir, float pusherSpeed)
             vel.z = newVel.z;
             moveSpeed = VSize(newVel);
 
-            printfDx("  → Pushed FORWARD: %.1f -> %.1f\n", currentSpeed, moveSpeed);
+            //printfDx("  → Pushed FORWARD: %.1f -> %.1f\n", currentSpeed, moveSpeed);
         }
         else {
             // 自分の方が速い → そのまま
-            printfDx("  → Already faster, no push\n");
+            //printfDx("  → Already faster, no push\n");
         }
     }
     else {
@@ -574,8 +567,8 @@ void CarBase::GetPushed(VECTOR collisionDir, float pusherSpeed)
         vel.z = newVel.z;
         moveSpeed = VSize(newVel);
 
-        printfDx("  → Pushed SIDE: %.1f + %.1f = %.1f\n",
-            currentSpeed, pushForce, moveSpeed);
+        //printfDx("  → Pushed SIDE: %.1f + %.1f = %.1f\n",
+        //    currentSpeed, pushForce, moveSpeed);
     }
 
     // 角度更新(新しい速度方向を向く)

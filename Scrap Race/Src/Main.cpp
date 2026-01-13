@@ -68,7 +68,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 {
     // --- DxLib初期設定 ---
     ChangeWindowMode(TRUE);                        // ウィンドウモード
-    SetGraphMode(1280, 720, 32);                   // 描画解像度（幅, 高さ, カラービット数）
+    SetGraphMode(1920, 1080, 32);                   // 描画解像度（幅, 高さ, カラービット数）
     SetWindowSizeChangeEnableFlag(TRUE);           // ウインドウのサイズを自由に変更
     SetWindowSizeExtendRate(1.2);                  // ウィンドウの拡大率（1.0 = 等倍）
     SetMainWindowText("スクラップレース");         // ウィンドウタイトル
