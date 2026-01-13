@@ -48,8 +48,8 @@ protected:
 
     void CheckCarCollision( float delta);
     void ProcessCarCollision(CarBase* otherCar, float currentDist);
-    void ReflectVelocity(VECTOR collisionDir, float currentSpeed);  // ← 追加
-    void GetPushed(VECTOR collisionDir, float pusherSpeed);         // ← 追加
+    void ReflectVelocity(VECTOR collisionDir, float currentSpeed);
+    void GetPushed(VECTOR collisionDir, float pusherSpeed);
 
     // 既存のメンバー
     std::vector<CarBase*>* allCars;  // 全車両へのポインタ
@@ -76,6 +76,11 @@ public:
     static constexpr float MIN_SPD_MAX = 50.0f;
     static constexpr float MIN_SPD_UP = 0.3f;
 
+    // ステータス上限
+    static constexpr float MAX_SPD_MAX = 200.0f;
+    static constexpr float MAX_SPD_UP = 2.0f;
+
+
     // ステータス減少率
     static constexpr float STATUS_DRAIN_SPD_MAX = 1.0f;
     static constexpr float STATUS_DRAIN_SPD_UP = 0.1f;
@@ -91,6 +96,10 @@ public:
     bool onGround;
     bool isGoal;
 
+    //ラップ周回
+    int currentLap;
+    int currentCheckpoint;
+
 protected:
     // ステージ情報
     Stage& stage;
@@ -100,7 +109,7 @@ protected:
     static constexpr float GRAVITY = -9.8f;
     static constexpr float ROTATION_SPEED = 180.0f;
     static constexpr float RESTITUTION = 0.3f;
-    static constexpr float HP_DRAIN_PER_FRAME = 0.01f;
+    static constexpr float HP_DRAIN_PER_FRAME = 0.04f;
     static constexpr float DAMAGE_MULTIPLIER = 0.1f;
     static constexpr float FOOT_OFFSET_RATIO = 0.5f;
     static constexpr int MAX_WALL_ITERATIONS = 3;

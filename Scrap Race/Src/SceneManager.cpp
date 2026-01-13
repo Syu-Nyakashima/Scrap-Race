@@ -37,6 +37,7 @@ void SceneManager::Update()
 		currentScene = nextScene;
 		currentScene->Initialize();
 		nextScene = nullptr;
+		return;
 	}
 
 	//現在シーンの更新

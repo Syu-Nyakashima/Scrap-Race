@@ -27,8 +27,6 @@ void MenuScene::Terminate()
 
 void MenuScene::Update() 
 {
-	if (ProcessMessage()) return;
-    
     UpdateKeyState();
 
 	UpdateMenu();

@@ -108,7 +108,7 @@ private:
     static constexpr float WAYPOINT_RADIUS = 40.0f;     // ウェイポイント到達判定
     static constexpr float STUCK_THRESHOLD = 1.0f;     // スタック判定距離
     static constexpr float STUCK_TIME = 2.0f;          // スタック判定時間
-    static constexpr float LOW_HP_THRESHOLD = 30.0f;   // HP低下判定
+    static constexpr float LOW_HP_THRESHOLD = 50.0f;   // HP低下判定
     static constexpr float SCRAP_SEARCH_RADIUS = 20.0f;// スクラップを探す範囲
     static constexpr float ERROR_CHECK_INTERVAL = 2.0f;  // エラー判定間隔
     static constexpr float WALL_RECOVERY_TIME = 2.0f;  // 壁衝突時の回復時間
