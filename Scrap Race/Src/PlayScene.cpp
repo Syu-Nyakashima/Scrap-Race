@@ -419,7 +419,7 @@ void PlayScene::Draw()
 
     //Drawˆ—
     stage.Draw();
-    stage.DrawCheckpoints();
+    //stage.DrawCheckpoints();
     player.Draw();
 
     // “G•`‰æ

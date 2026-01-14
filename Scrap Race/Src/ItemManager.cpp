@@ -19,10 +19,10 @@ void ItemManager::Initialize()
 	scrapSpawnInterval = NORMAL_SCRAP_SPAWN_INTERVAL;
 	maxScraps = MAX_SCRAPS;
 
-	normalScrapModel = MV1LoadModel("Data/Model/NormalScrap.mv1");
-	if (normalScrapModel == -1) printfDx("normalScrapモデル読み込み失敗！\n");
-	rareScrapModel = MV1LoadModel("Data/Model/RareScrap.mv1");
-	if (rareScrapModel == -1) printfDx("rareScrapモデル読み込み失敗！\n");
+	//normalScrapModel = MV1LoadModel("Data/Model/NormalScrap.mv1");
+	//if (normalScrapModel == -1) printfDx("normalScrapモデル読み込み失敗！\n");
+	//rareScrapModel = MV1LoadModel("Data/Model/RareScrap.mv1");
+	//if (rareScrapModel == -1) printfDx("rareScrapモデル読み込み失敗！\n");
 }
 
 void ItemManager::Terminate()
