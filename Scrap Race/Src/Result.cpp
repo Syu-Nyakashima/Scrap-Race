@@ -90,9 +90,6 @@ void Result::DrawGameOver()
 
 	DrawGraph(400, 600, RetryButtonImage[selectedMenu], true);
 	DrawGraph(800, 600, MenuButtonImage[selectedMenu], true);
-
-    // ƒŠƒUƒ‹ƒgî•ñ
-    DrawFormatString(400, 200, GetColor(255, 255, 255), "Time: %.2f•b", data.raceTime);
 }
 
 void Result::DrawClear()

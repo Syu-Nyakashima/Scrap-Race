@@ -22,10 +22,10 @@ void Player::Initialize()
     if (ModelHandle == -1) printfDx("モデル読み込み失敗！\n");
     
     // 位置初期化
-    pos = VGet(0.0f, 10.0f, 0.0f);
+    pos = VGet(0.0f, 2.0f, 0.0f);
     SpherePos = pos;
     vel = VGet(0.0f, 0.0f, 0.0f);
-    angle = 0.0f;
+    angle = -90.0f;
 
     //ステータス初期化
     moveSpeed = 0.0f;
