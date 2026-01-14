@@ -58,6 +58,9 @@ void ItemManager::Update(float deltaTime, int checkColModel, std::vector<CarBase
 	for (auto& scrap : Scraps) {
 		scrap.Update(deltaTime, checkColModel);
 	}
+	for(auto& rareScrap : RareScraps) {
+		rareScrap.Update(deltaTime, checkColModel);
+	}
 
 	CheckAllCollisions(cars);
 
@@ -66,6 +69,12 @@ void ItemManager::Update(float deltaTime, int checkColModel, std::vector<CarBase
 		std::remove_if(Scraps.begin(), Scraps.end(),
 			[](const Scrap& s) { return s.IsExpired(); }),
 		Scraps.end()
+	);
+
+	RareScraps.erase(
+		std::remove_if(RareScraps.begin(), RareScraps.end(),
+			[](const Scrap& s) { return s.IsExpired(); }),
+		RareScraps.end()
 	);
 }
 
@@ -77,6 +86,16 @@ void ItemManager::CheckAllCollisions(std::vector<CarBase*>& cars)
 			if (car != nullptr && car->IsAlive())
 			{
 				scrap.CheckCollision(*car);
+			}
+		}
+	}
+
+	for(auto& rareScrap : RareScraps) {
+		for (auto* car : cars)
+		{
+			if (car != nullptr && car->IsAlive())
+			{
+				rareScrap.CheckCollision(*car);
 			}
 		}
 	}
@@ -98,6 +117,10 @@ void ItemManager::Draw()
 	for (auto& scrap : Scraps) {
 		scrap.Draw();
 	}
+
+	for(auto& rareScrap : RareScraps) {
+		rareScrap.Draw();
+	}
 }
 
 bool ItemManager::FindNearestScrap(const VECTOR& pos, float searchRadius, VECTOR& outScrapPos)
@@ -114,6 +137,18 @@ bool ItemManager::FindNearestScrap(const VECTOR& pos, float searchRadius, VECTOR
 		{
 			nearestDist = dist;
 			outScrapPos = scrap.GetPosition();
+			found = true;
+		}
+	}
+
+	for(const auto& rareScrap : RareScraps) {
+		if (rareScrap.IsCollected()) continue;
+
+		float dist = VSize(VSub(rareScrap.GetPosition(), pos));
+		if (dist < nearestDist)
+		{
+			nearestDist = dist;
+			outScrapPos = rareScrap.GetPosition();
 			found = true;
 		}
 	}
@@ -145,7 +180,7 @@ void ItemManager::SpawnNormalScrap(const VECTOR& playerPos,int checkColModel)
 		// 壁に埋まっていないかチェック（小さめの半径でチェック）
 		if (IsPositionValid(spawnPos, checkColModel, 0.8f))
 		{
-			if (Scraps.size() >= maxScraps) {
+			if (Scraps.size() >= MAX_SCRAPS) {
 				Scraps.erase(Scraps.begin());
 			}
 
@@ -186,12 +221,12 @@ void ItemManager::SpawnRareScrap(const VECTOR& playerPos, float playerAngle, int
 		// 壁チェック
 		if (IsPositionValid(spawnPos, checkColModel, 0.8f))
 		{
-			if (Scraps.size() >= maxScraps) {
-				Scraps.erase(Scraps.begin());
+			if (RareScraps.size() >= MAX_SCRAPS_RARE) {
+				RareScraps.erase(RareScraps.begin());
 			}
 
-			Scraps.emplace_back();
-			Scrap& newScrap = Scraps.back();
+			RareScraps.emplace_back();
+			Scrap& newScrap = RareScraps.back();
 			newScrap.Initialize(spawnPos, ScrapType::Rare, normalScrapModel, rareScrapModel);
 
 			// 飛ぶ速さの計算

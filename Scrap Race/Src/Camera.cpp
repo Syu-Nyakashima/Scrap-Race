@@ -26,8 +26,7 @@ static VECTOR Lerp(const VECTOR& a, const VECTOR& b, float t)
 void Camera::Update(const Player& player, float delta)
 {
     VECTOR playerPos = player.pos;
-
-     // プレイヤーの角度（ラジアン）
+    // プレイヤーの角度（ラジアン）
     float rad = player.angle * DX_PI_F / 180.0f;
 
     // TPS視点（後ろから追従）
@@ -42,9 +41,21 @@ void Camera::Update(const Player& player, float delta)
 
     // 滑らかに補間
     smoothEye = Lerp(smoothEye, targetEye, lerpFactor);
-    smoothTarget = Lerp(smoothTarget, targetTarget, lerpFactor);
 
-    // 補間後の値を使用
+    // 距離を一定に保つ：smoothEyeからplayerPosへの方向を正規化して、正しい距離を適用
+    VECTOR toEye = VSub(smoothEye, playerPos);
+    float horizontalDistX = toEye.x;
+    float horizontalDistZ = toEye.z;
+    float currentDist = sqrtf(horizontalDistX * horizontalDistX + horizontalDistZ * horizontalDistZ);
+
+    if (currentDist > 0.0f) {
+        float scale = debugDist / currentDist;
+        smoothEye.x = playerPos.x + horizontalDistX * scale;
+        smoothEye.z = playerPos.z + horizontalDistZ * scale;
+    }
+    smoothTarget = VAdd(playerPos, VGet(0.0f, debugTargetOffsetY, 0.0f));
+
+    // 新しい位置を設定
     Eye = smoothEye;
     Target = smoothTarget;
 

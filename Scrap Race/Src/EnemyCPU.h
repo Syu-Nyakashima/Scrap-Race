@@ -100,6 +100,11 @@ private:
     bool hasNearestScrap;
     float scrapSearchRadius;
 
+    // 壁回避関連
+    float consecutiveWallHits;    // 連続衝突カウント
+    float wallHitCooldown;        // 壁衝突クールダウン
+    float lastWallHitTime;        // 最後の壁衝突時刻
+
     // 壁衝突回復
     float wallHitRecoveryTimer;
 

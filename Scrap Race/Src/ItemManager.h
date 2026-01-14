@@ -31,6 +31,7 @@ private:
 
 	//ïœêî
 	std::vector<Scrap> Scraps;
+	std::vector<Scrap> RareScraps;
 
 	int normalScrapModel = -1;
 	int rareScrapModel = -1;
@@ -67,5 +68,6 @@ private:
     static constexpr float MAX_GROUND_HEIGHT = 100.0f;
 
     // Scrapè„å¿
-    static constexpr size_t MAX_SCRAPS = 50;
+    static constexpr size_t MAX_SCRAPS = 20;
+	static constexpr size_t MAX_SCRAPS_RARE = 30;
 };

@@ -10,9 +10,9 @@ enum ResultType
 enum ResultSelect
 {
     RESULT_RETRY,         // リトライ(同じステージ)
-    RESULT_STAGE_SELECT,  //ステージセレクト
+    //RESULT_STAGE_SELECT,  //ステージセレクト
     RESULT_MENU,          // メニュー選択
-    RESULT_TITLE,         // タイトルに戻る
+    //RESULT_TITLE,         // タイトルに戻る
     RESULT_MAX
 };
 
@@ -22,7 +22,7 @@ struct ResultData
     float raceTime;           // 走行タイム
     float finalSpeed;         // 最終速度
     float finalHp;
-    // 他のステータスも追加
+	int Rank;                // 最終順位
 };
 
 class Result : public BaseScene
@@ -43,6 +43,11 @@ private:
 private:
     ResultType type;
     ResultData data;
+	int ResultImage; // リザルト背景画像
+	int RankUI[10];  // 順位表示画像
+	int MenuButtonImage[2]; // メニュー背景画像
+	int RetryButtonImage[2]; // リトライボタン画像
+
     int selectedMenu;  // 選択中のメニュー
 
     int displayTimer; // 表示用の時間

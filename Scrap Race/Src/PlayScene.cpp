@@ -13,7 +13,7 @@ PlayScene::PlayScene() : player(stage)
 {
     //オブジェクトの構築、メンバ変数の初期化
      // 敵を3台生成(例)
-    enemies.push_back(new EnemyCPU(stage, AIDifficulty::Easy, AIType::Attack));
+    //enemies.push_back(new EnemyCPU(stage, AIDifficulty::Easy, AIType::Attack));
     enemies.push_back(new EnemyCPU(stage, AIDifficulty::Normal, AIType::Balance));
     enemies.push_back(new EnemyCPU(stage, AIDifficulty::Hard, AIType::Defense));
     enemies.push_back(new EnemyCPU(stage, AIDifficulty::Normal, AIType::ScrapHunter));
@@ -47,6 +47,10 @@ PlayScene::~PlayScene()
 
 void PlayScene::Initialize()
 {
+    // ゲーム状態の初期化
+    gameState = GameState::CountDown;
+    countDownTimer = COUNT_DOWN_TIME;
+
     //UI画像読み込み
     SpeedMeterBase = LoadGraph("Data/Image/_0009_Base.png");
     MeterNeedle = LoadGraph("Data/Image/_0008_hari.png");
@@ -61,8 +65,8 @@ void PlayScene::Initialize()
     YellowHPMeter= LoadGraph("Data/Image/_0001_HP_Yellow_Bar.png");
     RedHPMeter= LoadGraph("Data/Image/_0002_HP_Red_Bar.png");
 
-    LoadDivGraph("Data/Image/RankNumber.png", 10, 10, 1, 130, 115, RankUI);
-    LoadDivGraph("Data/Image/LapNumber.png", 10, 10, 1, 80, 70, lapUI);
+    LoadDivGraph("Data/Image/RankNumber.png", 10, 10, 1, 100, 90, RankUI);
+    LoadDivGraph("Data/Image/LapNumber.png", 10, 10, 1, 57, 50, lapUI);
 
     stage.Initialize();
     player.Initialize();
@@ -186,6 +190,23 @@ void PlayScene::Update()
 
 void PlayScene::UpdateGame()
 {
+    // カウントダウン中の処理
+    if (gameState == GameState::CountDown)
+    {
+        UpdateCountDown();
+
+        // カメラとステージは更新
+        camera.Update(player, deltaTime);
+        stage.Update();
+        return;  // プレイヤーや敵は動かさない
+    }
+
+    // ゲーム終了状態
+    if (gameState == GameState::Finished)
+    {
+        return;
+    }
+
     //プレイヤー更新
     player.Update(deltaTime);
     //敵更新
@@ -347,6 +368,7 @@ void PlayScene::CheckGameEnd()
         data.finalSpeed = player.moveSpeed;
         data.finalHp = player.Hp;
 
+        gameState = GameState::Finished;
         isGameEnd = true;
         SceneManager::ChangeScene(new Result(RESULT_GAMEOVER, data));
         return;
@@ -355,14 +377,37 @@ void PlayScene::CheckGameEnd()
     // ゴール判定
     if (player.currentLap > TOTAL_LAPS)
     {
+        // プレイヤーの順位を取得
+        int playerRank = 1;
+        for (int i = 0; i < rankings.size(); i++) {
+            if (rankings[i] == 0) {  // 0はプレイヤーのインデックス
+                playerRank = i + 1;
+                break;
+            }
+        }
+
         ResultData data;
         data.raceTime = totalTime;
         data.finalSpeed = player.moveSpeed;
         data.finalHp = player.Hp;
+        data.Rank = playerRank;;
 
+        gameState = GameState::Finished;
 		isGameEnd = true;
         SceneManager::ChangeScene(new Result(RESULT_CLEAR, data));
         return;
+    }
+}
+
+void PlayScene::UpdateCountDown()
+{
+    countDownTimer -= deltaTime;
+
+    if (countDownTimer <= 0.0f)
+    {
+        // カウントダウン終了、ゲーム開始
+        gameState = GameState::Playing;
+        lapStartTime = totalTime;  // ここでラップタイマーをスタート
     }
 }
 
@@ -390,6 +435,12 @@ void PlayScene::Draw()
 
     //UI
     DrawRaceUI();
+
+    // カウントダウン表示
+    if (gameState == GameState::CountDown)
+    {
+        DrawCountDown();
+    }
     
     //ImGui
     ImGui_ImplDX11_NewFrame();
@@ -404,52 +455,123 @@ void PlayScene::Draw()
     ScreenFlip();
 }
 
+void PlayScene::DrawCountDown()
+{
+    int remainingTime = (int)ceil(countDownTimer);
+
+    // 画面中央に大きく表示
+    int screenW = 1280;  // 画面幅
+    int screenH = 720;   // 画面高さ
+
+    SetFontSize(120);
+
+    if (remainingTime > 0)
+    {
+        // 数字を表示 (3, 2, 1)
+        // 画像を使用する場合
+        // if (remainingTime <= 3 && remainingTime > 0)
+        // {
+        //     DrawGraph(screenW/2 - 100, screenH/2 - 100, 
+        //               countDownImages[3 - remainingTime], TRUE);
+        // }
+
+        // テキストで表示する場合
+        const char* text = "";
+        switch (remainingTime)
+        {
+        case 3: text = "3"; break;
+        case 2: text = "2"; break;
+        case 1: text = "1"; break;
+        }
+
+        int textWidth = GetDrawStringWidth(text, strlen(text));
+        DrawString(screenW / 2 - textWidth / 2, screenH / 2 - 60,
+            text, GetColor(255, 255, 0));
+    }
+    else
+    {
+        // GO! 表示
+        // 画像を使用する場合
+        // DrawGraph(screenW/2 - 100, screenH/2 - 100, countDownImages[3], TRUE);
+
+        // テキストで表示する場合
+        const char* text = "GO!";
+        int textWidth = GetDrawStringWidth(text, strlen(text));
+        DrawString(screenW / 2 - textWidth / 2, screenH / 2 - 60,
+            text, GetColor(0, 255, 0));
+    }
+
+    SetFontSize(16);  // フォントサイズを元に戻す
+}
+
 void PlayScene::DrawRaceUI()
 {
     // ベース画像を描画
-    DrawGraph(1300, 600, SpeedMeterBase, true);
-    DrawGraph(1390, 750, KmBase, true);
+    DrawGraph(1000, 450, SpeedMeterBase, true);
+    DrawGraph(1090, 580, KmBase, true);
+
+    DrawFormatString(1100, 600, GetColor(255, 255, 255),
+        " %.0f", allCars[0]->moveSpeed);
 
     // スピード比率を計算
     float speedRatio = allCars[0]->moveSpeed / allCars[0]->MAX_SPD_MAX;
 
-    // 円弧状のスピードメーター画像を描画
-    // LowSpeedMeter or HighSpeedMeter を速度に応じて描画
-    if (speedRatio < 0.5f) {
-        // 低速時は青いメーター
-        DrawArcImageMeter(
-            1422, 722,            // 中心座標
-            LowSpeedMeter,       // 画像ハンドル
-            speedRatio * 2.0f,   // 0.5以下なので2倍して0~1にする
-            85.0f,               // 内側半径
-            95.0f,               // 外側半径
-            -170.0f,             // 開始角度（左下）
-            185.0f               // 角度範囲（左下から左上まで135度）
-        );
-    }
-    else {
-        // 低速メーターは満タン
-        DrawArcImageMeter(1422, 722,   LowSpeedMeter, 1.0f,
-            85.0f, 95.0f, -170.0f, 190.0f);
-
-        // 高速時は赤いメーター
-        float highSpeedRatio = (speedRatio - 0.5f) * 2.0f; // 0.5~1を0~1に変換
-        DrawArcImageMeter(
-            1422, 722,
-            HighSpeedMeter,
-            highSpeedRatio,
-            85.0f,               // 内側半径
-            95.0f,
-            15.0f,                // 開始角度（上）
-            60.0f               // 角度範囲（上から右下まで135度）
-        );
-    }
-
     // 針の描画
-    float needleAngle = -87.0f + (270.0f * speedRatio);
-    DrawRotaGraph2(1422, 722, 2, 52, 1.0f,
+    float needleAngle = -85.0f + (270.0f * speedRatio);
+    DrawRotaGraph2(1122, 572, 2, 52, 1.0f,
         needleAngle * DX_PI_F / 180.0f,
         MeterNeedle, true, false);
+
+    // 円弧状のスピードメーター画像を描画
+    // LowSpeedMeter or HighSpeedMeter を速度に応じて描画
+    if (needleAngle <= 95.0f)
+    {
+        // 低速メーター（青）のみ描画
+        // -85度から針の角度までの範囲を計算
+        float lowSpeedAngleRange = needleAngle - (-85.0f);  // 針までの角度
+        float lowSpeedRatio = lowSpeedAngleRange / 180.0f;   // 全体(185度)に対する割合
+
+        DrawArcImageMeter(
+            1121, 573,
+            LowSpeedMeter,
+            lowSpeedRatio,
+            87.0f,
+            97.0f,
+            -170.0f,
+            180.0f
+        );
+    }
+    else
+    {
+        // 低速メーターは満タン表示
+        DrawArcImageMeter(
+            1121, 573,
+            LowSpeedMeter,
+            1.0f,
+            87.0f,
+            97.0f,
+            -170.0f,
+            185.0f
+        );
+
+        // 高速メーター（赤）を針の位置まで描画
+        // 15度から針の角度までの範囲を計算
+        float highSpeedAngleRange = needleAngle - 95.0f;     // 15度から針までの角度
+        float highSpeedRatio = highSpeedAngleRange / 60.0f;  // 全体(60度)に対する割合
+
+        // 最大値を超えないようにクランプ
+        if (highSpeedRatio > 1.0f) highSpeedRatio = 1.0f;
+
+        DrawArcImageMeter(
+            1120, 572,
+            HighSpeedMeter,
+            highSpeedRatio,
+            85.0f,
+            100.0f,
+            15.0f,
+            60.0f
+        );
+    }
 
     // HPメーターも同様に描画
     float hpRatio = allCars[0]->Hp / 100.0f;
@@ -466,17 +588,17 @@ void PlayScene::DrawRaceUI()
     }
 
     DrawArcImageMeter(
-        1422, 722,           // 中心座標
+        1122, 572,      // 中心座標
         hpMeterHandle,      // HP画像
         hpRatio,            // 表示割合
-        105.0f,              // 内側半径
+        105.0f,             // 内側半径
         125.0f,             // 外側半径
         -170.0f,            // 開始角度
         240.0f              // 角度範囲（全周）
     );
 
     // その他のUI
-    DrawGraph(50, 600, LapAndRankBase, true);
+    DrawGraph(40, 570, LapAndRankBase, true);
     //DrawGraph(10, 10, TimeUI, true);
 
     // 順位UI
@@ -487,11 +609,11 @@ void PlayScene::DrawRaceUI()
             break;
         }
     }
-    DrawGraph(330, 675, RankUI[playerRank], true);
+    DrawGraph(200, 605, RankUI[playerRank], true);
 
     // ラップUI
-    DrawGraph(70, 670, lapUI[player.currentLap], true);
-    DrawGraph(180, 710, lapUI[TOTAL_LAPS], true);
+    DrawGraph(50, 607, lapUI[player.currentLap], true);
+    DrawGraph(115, 645, lapUI[TOTAL_LAPS], true);
 
     // ラップ、タイム、順位などのテキスト表示
     DrawFormatString(10, 10, GetColor(255, 255, 255),

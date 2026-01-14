@@ -22,6 +22,7 @@ void CarBase::Initialize()
     pos = VGet(0.0f, 10.0f, 0.0f);
     vel = VGet(0.0f, 0.0f, 0.0f);
     angle = 0.0f;
+    groundNormal = VGet(0.0f, 1.0f, 0.0f);
 
     // ステータス初期化
     moveSpeed = 0.0f;
@@ -54,13 +55,21 @@ void CarBase::Terminate()
     }
 }
 
-void CarBase::Draw() 
+void CarBase::Draw()
 {
     if (ModelHandle == -1) return;
 
+    // スケール行列
     MATRIX matScale = MGetScale(VGet(1.0f, 1.0f, 1.0f));
-    MATRIX matRot = MGetRotY(angle * DX_PI_F / 180.0f);
+    // Y軸回転(車の向き)
+    MATRIX matRotY = MGetRotY(angle * DX_PI_F / 180.0f);
+    // 地面の法線に合わせた回転行列を計算
+    MATRIX matSlope = CalculateSlopeMatrix(groundNormal);
+    // 回転を合成(傾斜 × Y軸回転)
+    MATRIX matRot = MMult(matRotY, matSlope);
+    // 移動行列
     MATRIX matTrans = MGetTranslate(VAdd(pos, VGet(0.0f, 0.0f, 0.0f)));
+    // 最終的なワールド行列
     MATRIX matWorld = MMult(MMult(matScale, matRot), matTrans);
 
     MV1SetMatrix(ModelHandle, matWorld);
@@ -136,17 +145,20 @@ void CarBase::CheckGround(int CheckColModel, float delta)
     };
 
     float highestGroundY = -99999.0f;
+    VECTOR highestNormal = VGet(0.0f, 1.0f, 0.0f);
     bool foundGround = false;
 
     for (int i = 0; i < CHECK_POINTS; i++)
     {
         VECTOR checkPos = VAdd(pos, checkOffsets[i]);
         float groundY;
+		VECTOR normal;
 
-        if (CheckGroundPoint(CheckColModel, checkPos, groundY)) {
+        if (CheckGroundPoint(CheckColModel, checkPos, groundY, normal)) {
             // 最も高い地面を記録
             if (groundY > highestGroundY) {
                 highestGroundY = groundY;
+                highestNormal = normal;
                 foundGround = true;
             }
         }
@@ -154,14 +166,18 @@ void CarBase::CheckGround(int CheckColModel, float delta)
 
     // 地面の処理
     if (foundGround) {
+        groundNormal = highestNormal;
         ApplyGroundPhysics(highestGroundY, delta);
     }
     else {
         onGround = false;
+
+        groundNormal = VAdd(VScale(groundNormal, 0.95f), VScale(VGet(0.0f, 1.0f, 0.0f), 0.05f));
+        groundNormal = VNorm(groundNormal);
     }
 }
 
-bool CarBase::CheckGroundPoint(int CheckColModel, VECTOR checkPos, float& outGroundY)
+bool CarBase::CheckGroundPoint(int CheckColModel, VECTOR checkPos, float& outGroundY, VECTOR& outNormal)
 {
     VECTOR lineStart = VAdd(checkPos, VGet(0.0f, 5.0f, 0.0f));
     VECTOR lineEnd = VAdd(checkPos, VGet(0.0f, -50.0f, 0.0f));
@@ -173,6 +189,7 @@ bool CarBase::CheckGroundPoint(int CheckColModel, VECTOR checkPos, float& outGro
     if (HitPoly.HitFlag == 1)
     {
         outGroundY = HitPoly.HitPosition.y;
+        outNormal = HitPoly.Normal;
         return true;
     }
 
@@ -201,6 +218,43 @@ void CarBase::ApplyGroundPhysics(float groundY, float delta)
     {
         onGround = false;
     }
+}
+
+MATRIX CarBase::CalculateSlopeMatrix(VECTOR normal)
+{
+    // 法線を正規化
+    normal = VNorm(normal);
+
+    // 上方向ベクトル(地面の法線)
+    VECTOR up = normal;
+
+    // 仮の前方向ベクトル(ワールドのZ軸方向)
+    VECTOR forward = VGet(0.0f, 0.0f, 1.0f);
+
+    // 右方向ベクトルを外積で計算
+    VECTOR right = VCross(up, forward);
+
+    // 法線が真上を向いている場合の対策
+    if (VSize(right) < 0.001f) {
+        // 別の基準ベクトルを使用
+        forward = VGet(1.0f, 0.0f, 0.0f);
+        right = VCross(up, forward);
+    }
+
+    right = VNorm(right);
+
+    // 前方向ベクトルを再計算(右と上の外積)
+    forward = VCross(right, up);
+    forward = VNorm(forward);
+
+    // 回転行列を構築
+    MATRIX mat;
+    mat.m[0][0] = right.x;   mat.m[0][1] = right.y;   mat.m[0][2] = right.z;   mat.m[0][3] = 0.0f;
+    mat.m[1][0] = up.x;      mat.m[1][1] = up.y;      mat.m[1][2] = up.z;      mat.m[1][3] = 0.0f;
+    mat.m[2][0] = forward.x; mat.m[2][1] = forward.y; mat.m[2][2] = forward.z; mat.m[2][3] = 0.0f;
+    mat.m[3][0] = 0.0f;      mat.m[3][1] = 0.0f;      mat.m[3][2] = 0.0f;      mat.m[3][3] = 1.0f;
+
+    return mat;
 }
 
 void CarBase::CheckWall(int CheckColModel, float delta)
