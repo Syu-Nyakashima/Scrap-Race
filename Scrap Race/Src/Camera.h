@@ -30,7 +30,7 @@ public:
 
 	bool isDebugOverView;  // 上視点デバッグフラグ
 
-	float debugDist = 15.0f;
+	float debugDist = 12.0f;
 	float debugHeight = 0.0f;
 	float debugTargetOffsetY = 0.0f;
 	float debugNear = 0.1f;

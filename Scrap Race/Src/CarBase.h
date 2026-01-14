@@ -38,8 +38,9 @@ protected:
     void UpdateCollision(float delta);
 
     void CheckGround(int CheckColModel, float delta);
-    bool CheckGroundPoint(int CheckColModel, VECTOR checkPos, float& outGroundY);
+    bool CheckGroundPoint(int CheckColModel, VECTOR checkPos, float& outGroundY, VECTOR& outNormal);
     void ApplyGroundPhysics(float groundY, float delta);
+    MATRIX CalculateSlopeMatrix(VECTOR normal);
 
     void CheckWall(int CheckColModel, float delta);
     void ProcessWallCollision(const MV1_COLL_RESULT_POLY_DIM& HitPolyDim);
@@ -104,6 +105,8 @@ protected:
     // ステージ情報
     Stage& stage;
     int ModelHandle;
+
+    VECTOR groundNormal;  // 地面の法線ベクトル
 
     // 物理定数
     static constexpr float GRAVITY = -9.8f;

@@ -37,9 +37,9 @@ void Stage::Initialize()
 
     // CP0: スタート地点
     cp.pos = VGet(0.0f, 0.0f, 0.0f);
-    cp.width = 200.0f;
+    cp.width = 50.0f;
     cp.height = 100.0f;
-    cp.depth = 100.0f;
+    cp.depth = 200.0f;
     checkpoints.push_back(cp);
 
     // CP1: 第1コーナー
@@ -50,14 +50,14 @@ void Stage::Initialize()
     checkpoints.push_back(cp);
 
     // CP2: 第2コーナー
-    cp.pos = VGet(50.0f, 0.0f, -200.0f);
+    cp.pos = VGet(50.0f, 0.0f, -250.0f);
     cp.width = 30.0f;
     cp.height = 50.0f;
     cp.depth = 200.0f;
     checkpoints.push_back(cp);
 
     // CP3: 第3コーナー
-    cp.pos = VGet(50.0f, 0.0f, -50.0f);
+    cp.pos = VGet(100.0f, 0.0f, -70.0f);
     cp.width = 200.0f;
     cp.height = 50.0f;
     cp.depth = 30.0f;

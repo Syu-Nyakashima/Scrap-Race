@@ -15,6 +15,17 @@ Result::~Result()
 
 void Result::Initialize()
 {
+    if(type == RESULT_GAMEOVER){
+        ResultImage = LoadGraph("Data/Image/GameOverResult.png");
+    }
+    else{
+        ResultImage = LoadGraph("Data/Image/ClearResult.png");
+	}
+
+	LoadDivGraph("Data/Image/RankNumber.png", 10, 10, 1, 100, 90, RankUI);
+	LoadDivGraph("Data/Image/ResultMenuButton.png", 2, 2, 1, 400, 98, MenuButtonImage);
+	LoadDivGraph("Data/Image/ResultRetryButton.png", 2, 2, 1, 400, 98, RetryButtonImage);
+
 	selectedMenu = 0;
 	displayTimer = 0;
 }
@@ -53,14 +64,14 @@ void Result::Draw()
 
 void Result::UpdateMenu()
 {
-    if (IsKeyJustPressed(KEY_INPUT_UP) || IsKeyJustPressed(KEY_INPUT_W))
+    if (IsKeyJustPressed(KEY_INPUT_LEFT) || IsKeyJustPressed(KEY_INPUT_A))
     {
         selectedMenu--;
         if (selectedMenu < 0) selectedMenu = RESULT_MAX - 1;
     }
 
     // 下キーで選択を下に
-    if (IsKeyJustPressed(KEY_INPUT_DOWN) || IsKeyJustPressed(KEY_INPUT_S))
+    if (IsKeyJustPressed(KEY_INPUT_RIGHT) || IsKeyJustPressed(KEY_INPUT_D))
     {
         selectedMenu++;
         if (selectedMenu >= RESULT_MAX) selectedMenu = 0;
@@ -75,48 +86,22 @@ void Result::UpdateMenu()
 
 void Result::DrawGameOver()
 {
-    // タイトル
-    DrawString(400, 100, "GAME OVER", GetColor(255, 0, 0));
+    DrawExtendGraph(0, 0, 1280, 720, ResultImage, true);
 
-    // リザルト情報
-    DrawFormatString(400, 200, GetColor(255, 255, 255), "Time: %.2f秒", data.raceTime);
-    DrawFormatString(400, 230, GetColor(255, 255, 255), "Final Speed: %.2f", data.finalSpeed);
-    DrawFormatString(400, 260, GetColor(255, 255, 255), "Final HP: %.2f", data.finalHp);
-
-    // メニュー
-    int menuY = 400;
-    const char* menuText[] = { "RETRY", "STAGE SELECT", "MENU", "TITLE" };
-
-    for (int i = 0; i < RESULT_MAX; i++)
-    {
-        unsigned int color = (i == selectedMenu) ? GetColor(255, 255, 0) : GetColor(200, 200, 200);
-        DrawString(450, menuY + i * 40, menuText[i], color);
-    }
-
-    DrawString(420, menuY + selectedMenu * 40, "→", GetColor(255, 255, 0));
+	DrawGraph(400, 600, RetryButtonImage[selectedMenu], true);
+	DrawGraph(800, 600, MenuButtonImage[selectedMenu], true);
 }
 
 void Result::DrawClear()
 {
-    // タイトル
-    DrawString(400, 100, "CLEAR!", GetColor(0, 255, 0));
+    DrawExtendGraph(0, 0, 1280, 720, ResultImage, true);
 
-    // リザルト情報
-    DrawFormatString(400, 200, GetColor(255, 255, 255), "Clear Time: %.2f秒", data.raceTime);
-    DrawFormatString(400, 230, GetColor(255, 255, 255), "Final Speed: %.2f", data.finalSpeed);
-    DrawFormatString(400, 260, GetColor(255, 255, 255), "Final HP: %.2f", data.finalHp);
+    DrawGraph(400, 600, RetryButtonImage[selectedMenu], true);
+    DrawGraph(800, 600, MenuButtonImage[selectedMenu], true);
 
-    // メニュー
-    int menuY = 400;
-    const char* menuText[] = { "RETRY", "STAGE SELECT", "MENU", "TITLE" };
-
-    for (int i = 0; i < RESULT_MAX; i++)
-    {
-        unsigned int color = (i == selectedMenu) ? GetColor(255, 255, 0) : GetColor(200, 200, 200);
-        DrawString(450, menuY + i * 40, menuText[i], color);
+    if (data.Rank >= 1 && data.Rank <= 10) {
+        DrawGraph(600, 280, RankUI[data.Rank], true);
     }
-
-    DrawString(420, menuY + selectedMenu * 40, "→", GetColor(255, 255, 0));
 }
 
 void Result::ExecuteMenu()
@@ -127,17 +112,17 @@ void Result::ExecuteMenu()
         SceneManager::ChangeScene(new PlayScene());
         break;
 
-    case RESULT_STAGE_SELECT:
+    //case RESULT_STAGE_SELECT:
         // SceneManager::ChangeScene(new StageSelect());  // 後で実装
-        break;
+    //    break;
 
     case RESULT_MENU:
         SceneManager::ChangeScene(new MenuScene());
         break;
 
-    case RESULT_TITLE:
+    //case RESULT_TITLE:
         // SceneManager::ChangeScene(new TitleScene());  // 後で実装
-        break;
+    //    break;
 
     default:
         break;

@@ -17,12 +17,16 @@ private:
     // 現在のキー状態
     bool nowUpKey;
     bool nowDownKey;
+	bool nowLeftKey;
+	bool nowRightKey;
     bool nowEnterKey;
     bool nowSpaceKey;
 
     // 前フレームのキー状態
     bool prevUpKey = false;
     bool prevDownKey = false;
+	bool prevLeftKey = false;
+	bool prevRightKey = false;
     bool prevEnterKey = false;
     bool prevSpaceKey = false;
 

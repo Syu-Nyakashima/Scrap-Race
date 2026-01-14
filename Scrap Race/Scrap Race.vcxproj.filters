@@ -96,9 +96,6 @@
     <ClCompile Include="Src\ItemManager.cpp">
       <Filter>ソース ファイル\Scene\Play</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Result.cpp">
-      <Filter>ソース ファイル\Scene\Result</Filter>
-    </ClCompile>
     <ClCompile Include="Src\SceneManager.cpp">
       <Filter>ソース ファイル\Scene\Manager</Filter>
     </ClCompile>
@@ -113,6 +110,9 @@
     </ClCompile>
     <ClCompile Include="Src\EnemyCPU.cpp">
       <Filter>ソース ファイル\RaceCar\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Result.cpp">
+      <Filter>ソース ファイル\Scene\Play</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -155,9 +155,6 @@
     <ClInclude Include="Src\ItemManager.h">
       <Filter>ソース ファイル\Scene\Play</Filter>
     </ClInclude>
-    <ClInclude Include="Src\Scrap.h">
-      <Filter>ソース ファイル\Scene\Play</Filter>
-    </ClInclude>
     <ClInclude Include="Src\Result.h">
       <Filter>ソース ファイル\Scene\Result</Filter>
     </ClInclude>
@@ -175,6 +172,9 @@
     </ClInclude>
     <ClInclude Include="Src\EnemyCPU.h">
       <Filter>ソース ファイル\RaceCar\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Scrap.h">
+      <Filter>ソース ファイル\Scene\Result</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

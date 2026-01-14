@@ -18,11 +18,27 @@ public:
     void Update() override;
 
 private:
+    // ゲーム状態
+    enum class GameState
+    {
+        CountDown,  // カウントダウン中
+        Playing,    // プレイ中
+        Finished    // ゲーム終了
+    };
+
+    GameState gameState;           // 現在のゲーム状態
+    float countDownTimer;          // カウントダウン用タイマー
+
+    // カウントダウン用画像ハンドル
+    int countDownImages[4];
+
     void Draw();            // 描画処理
     void DrawRaceUI();
     void BuildCarList();    // Car配列を構築
     void UpdateGame();      // ゲームロジック更新
     void CheckGameEnd();    // ゲーム終了判定
+    void UpdateCountDown();
+    void DrawCountDown();
     void DrawPlayerDebugUI();
     void DrawArcImageMeter(int centerX, int centerY, int graphHandle,
         float ratio, float innerRadius, float outerRadius,
@@ -77,5 +93,7 @@ private:
     bool isGameEnd = false;
 
     //定数
+    const float COUNT_DOWN_TIME = 3.0f;  // カウントダウン時間(秒)
     static constexpr int TOTAL_LAPS = 3;  // 総周回数
+    
 };

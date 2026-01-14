@@ -4,7 +4,8 @@ EnemyCPU::EnemyCPU(Stage& stageRef, AIDifficulty diff, AIType type)
     : CarBase(stageRef), difficulty(diff), type(type),
     currentWaypointIndex(0), thinkTimer(0.0f), stuckTimer(0.0f),
     isStuck(false), hasNearestScrap(false), scrapSearchRadius(SCRAP_SEARCH_RADIUS),
-    errorTimer(0.0f), isInError(false), wallHitRecoveryTimer(0.0f)
+    errorTimer(0.0f), isInError(false), wallHitRecoveryTimer(0.0f),
+    consecutiveWallHits(0), wallHitCooldown(0.0f), lastWallHitTime(0.0f)
 {   
     // 難易度別パラメータ設定
     switch (difficulty)
@@ -64,7 +65,10 @@ void EnemyCPU::Initialize()
     errorTimer = 0.0f;
     isInError = false;
     wallHitRecoveryTimer = 0.0f;
-    lastWaypointDist = 99999.0f;  // ← 追加
+    lastWaypointDist = 99999.0f;
+    consecutiveWallHits = 0;
+    wallHitCooldown = 0.0f;
+    lastWallHitTime = 0.0f;
 }
 
 void EnemyCPU::Terminate()
@@ -78,7 +82,6 @@ void EnemyCPU::Update(float delta)
     Hp -= HP_DRAIN_PER_FRAME;
     if (Hp <= 0.0f) {
         Hp = 0.0f;
-        printfDx("Enemy Dead!!!!!!!!\n");
         return; // 死亡時は動かない
     }
 
@@ -90,6 +93,11 @@ void EnemyCPU::Update(float delta)
 
     //エラー挙動
     UpdateErrorBehavior(delta);
+
+    // 壁衝突クールダウン更新
+    if (wallHitCooldown > 0.0f) {
+        wallHitCooldown -= delta;
+    }
 
     // 壁衝突回復タイマー更新
     if (wallHitRecoveryTimer > 0.0f) {
@@ -105,13 +113,20 @@ void EnemyCPU::Update(float delta)
     // 衝突判定
     UpdateCollision(delta);
 
-    // 壁衝突検出 ← 追加
+    // 壁衝突検出 
     if (justHitWall) {
         OnWallHit();
     }
 
     // スタック検出
     CheckStuckState(delta);
+
+    // 連続衝突カウントの減衰(2秒間衝突がなければリセット)
+    lastWallHitTime += delta;
+    if (lastWallHitTime > 2.0f && consecutiveWallHits > 0) {
+        consecutiveWallHits -= delta * 0.5f;
+        if (consecutiveWallHits < 0) consecutiveWallHits = 0;
+    }
 }
 
 void EnemyCPU::SetTypeParameters()
@@ -225,14 +240,40 @@ void EnemyCPU::RecoverFromStuck(float delta)
     {
         isStuck = false;
         stuckTimer = 0.0f;
+        consecutiveWallHits = 0;
     }
 }
 
 void EnemyCPU::OnWallHit()
 {
-    wallHitRecoveryTimer = WALL_RECOVERY_TIME;
-    moveSpeed = 0.0f;  // 一旦停止
-    //printfDx("Enemy hit wall! Starting recovery...\n");
+    // クールダウン中は無視(連続衝突防止)
+    if (wallHitCooldown > 0.0f) {
+        return;
+    }
+
+    consecutiveWallHits += 1.0f;
+    wallHitCooldown = 0.8f;  // 0.8秒のクールダウン
+    lastWallHitTime = 0.0f;  // リセット
+
+    // 連続衝突レベルに応じた対応
+    if (consecutiveWallHits >= 4.0f) {
+        // レベル3: かなり危険 - 長めのバック
+        wallHitRecoveryTimer = 2.5f;
+        moveSpeed = -SpdMax * 0.4f;
+        //printfDx("Enemy: 重度の連続衝突! 長めのバック (count: %.0f)\n", consecutiveWallHits);
+    }
+    else if (consecutiveWallHits >= 2.0f) {
+        // レベル2: 危険 - バック
+        wallHitRecoveryTimer = 1.5f;
+        moveSpeed = -SpdMax * 0.3f;
+        //printfDx("Enemy: 連続衝突検出! バック開始 (count: %.0f)\n", consecutiveWallHits);
+    }
+    else {
+        // レベル1: 通常の衝突 - 停止して向き直し
+        wallHitRecoveryTimer = 1.0f;
+        moveSpeed = 0.0f;
+        //printfDx("Enemy: 壁衝突 (count: %.0f)\n", consecutiveWallHits);
+    }
 }
 
 void EnemyCPU::RecoverFromWallHit(float delta)
@@ -246,12 +287,31 @@ void EnemyCPU::RecoverFromWallHit(float delta)
     while (angleDiff > 180.0f) angleDiff -= 360.0f;
     while (angleDiff < -180.0f) angleDiff += 360.0f;
 
+    // 連続衝突レベルに応じた回転速度
+    float turnSpeed = ROTATION_SPEED * delta;
+    if (consecutiveWallHits >= 4.0f) {
+        turnSpeed *= 2.5f;  // より速く回転
+    }
+    else if (consecutiveWallHits >= 2.0f) {
+        turnSpeed *= 1.8f;
+    }
+
     // 向き直り中は回転のみ
-    if (fabsf(angleDiff) > 10.0f)
+    if (fabsf(angleDiff) > 20.0f)
     {
         float steerAmount = angleDiff > 0 ? ROTATION_SPEED * delta : -ROTATION_SPEED * delta;
         angle += steerAmount;
-        moveSpeed = 0.0f;  // 停止したまま
+        // 連続衝突が多い場合はバック継続
+        if (consecutiveWallHits >= 2.0f) {
+            float backSpeed = -SpdMax * 0.3f;
+            if (consecutiveWallHits >= 4.0f) {
+                backSpeed = -SpdMax * 0.4f;
+            }
+            moveSpeed = backSpeed;
+        }
+        else {
+            moveSpeed = 0.0f;
+        }
     }
     else
     {
@@ -380,12 +440,6 @@ void EnemyCPU::HandleAcceleration(float delta)
         moveSpeed -= SpdDown;
         if (moveSpeed < targetSpeed) moveSpeed = targetSpeed;
     }
-
-    // 壁衝突時はブレーキ
-    if (justHitWall)
-    {
-        moveSpeed *= 0.5f;
-    }
 }
 
 float EnemyCPU::CalculateTargetSpeed() const
@@ -424,6 +478,14 @@ void EnemyCPU::CheckStuckState(float delta)
 {
     float movedDistance = VSize(VSub(pos, lastPos));
 
+    // 連続衝突が非常に多い場合は強制スタック
+    if (consecutiveWallHits >= 6.0f) {
+        isStuck = true;
+        stuckTimer = STUCK_TIME;
+        consecutiveWallHits = 0;  // リセット
+        //printfDx("Enemy: 連続衝突多数で強制スタック判定\n");
+    }
+
     //動いた距離が一定時間に一定距離動いていなければ
     if (movedDistance < STUCK_THRESHOLD * delta && fabsf(moveSpeed) > 1.0f)
     {
@@ -436,8 +498,12 @@ void EnemyCPU::CheckStuckState(float delta)
     }
     else
     {
-        stuckTimer = 0.0f;
-        isStuck = false;
+        if (stuckTimer > 0.0f) {
+            stuckTimer -= delta * 0.5f;  // 徐々に減らす
+        }
+        if (movedDistance > STUCK_THRESHOLD * delta * 2.0f) {
+            isStuck = false;
+        }
     }
 
     lastPos = pos;
