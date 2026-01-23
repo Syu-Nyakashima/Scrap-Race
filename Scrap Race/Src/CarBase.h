@@ -3,6 +3,8 @@
 #include "Stage.h"
 #include <vector>
 
+class ItemManager;
+
 class CarBase {
 public:
     CarBase(Stage& stageRef);
@@ -16,6 +18,9 @@ public:
     // 回復処理
     void Heal(float amount);
     void BoostStatus(float spdMaxBoost, float spdUpBoost);
+
+    // ItemManagerの設定
+    void SetItemManager(ItemManager* itemMgr) { itemManager = itemMgr; }
 
     // ゲッター
     VECTOR GetPosition() const { return pos; }
@@ -32,6 +37,9 @@ public:
 protected:
     //ステータス変動
     void DrainStatusOverTime(float delta);
+
+    // HP減少によるスクラップ生成チェック
+    void CheckHPDropScrap();
 
     // 共通の物理演算・衝突判定
     void UpdatePhysics(float delta);
@@ -51,9 +59,11 @@ protected:
     void ProcessCarCollision(CarBase* otherCar, float currentDist);
     void ReflectVelocity(VECTOR collisionDir, float currentSpeed);
     void GetPushed(VECTOR collisionDir, float pusherSpeed);
+	void SpawnCarCollisionScrap(VECTOR collisionPos, float relativeSpeed);
 
     // 既存のメンバー
     std::vector<CarBase*>* allCars;  // 全車両へのポインタ
+    ItemManager* itemManager;
 
     // サブクラスで実装する入力処理
     virtual void UpdateInput(float delta) = 0;
@@ -74,8 +84,7 @@ public:
     float Hp;
 
     // ステータス下限
-    static constexpr float MIN_SPD_MAX = 50.0f;
-    static constexpr float MIN_SPD_UP = 0.3f;
+    static constexpr float MIN_SPD_MAX = 100.0f;
 
     // ステータス上限
     static constexpr float MAX_SPD_MAX = 200.0f;
@@ -106,17 +115,29 @@ protected:
     Stage& stage;
     int ModelHandle;
 
+    bool isDrifting;
+    float driftAngle;           // ドリフトによる横向き角度
+    float lateralVelocity;      // 横方向の速度
+
     VECTOR groundNormal;  // 地面の法線ベクトル
 
+    // HP減少による生成管理
+    float hpDrainSum;             // HP減少の蓄積量
+    float lastHP;
+
+    // 定数
+    const float HP_DROP_THRESHOLD = 10.0f; // HPがこの値減ったらRareScrapを出現させる
+    static constexpr float CAR_COLLISION_SCRAP_SPEED_THRESHOLD = 30.0f; // 車衝突でスクラップ生成する相対速度閾値
+    
     // 物理定数
     static constexpr float GRAVITY = -9.8f;
     static constexpr float ROTATION_SPEED = 180.0f;
     static constexpr float RESTITUTION = 0.3f;
-    static constexpr float HP_DRAIN_PER_FRAME = 0.04f;
+    static constexpr float HP_DRAIN_PER_FRAME = 0.02f;
     static constexpr float DAMAGE_MULTIPLIER = 0.1f;
     static constexpr float FOOT_OFFSET_RATIO = 0.5f;
     static constexpr int MAX_WALL_ITERATIONS = 3;
     static constexpr float WALL_NORMAL_THRESHOLD = 0.7f;
     static constexpr float CAR_COLLISION_RESTITUTION = 0.8f;  // ← 修正: Car衝突の基本反発係数
-    static constexpr float CAR_COLLISION_DAMAGE_MULTIPLIER = 0.1f;  // ← 修正: Car衝突のダメージ倍率
+    static constexpr float CAR_COLLISION_DAMAGE_MULTIPLIER = 5.0f;  // ← 修正: Car衝突のダメージ倍率
 };

@@ -1,6 +1,6 @@
 #include "DxLib.h"
 #include "SceneManager.h"
-#include "MenuScene.h"
+#include "TitleScene.h"
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
@@ -88,7 +88,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // --- シーン開始 ---
     SceneManager::Initialize();
-    SceneManager::ChangeScene(new MenuScene());
+    SceneManager::ChangeScene(new TitleScene());
     void InitImGui();
     void TerminateImGui();
     InitImGui();

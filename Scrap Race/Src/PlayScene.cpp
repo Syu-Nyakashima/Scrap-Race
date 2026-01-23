@@ -9,14 +9,16 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 
-PlayScene::PlayScene() : player(stage)
+PlayScene::PlayScene(AIDifficulty difficulty) : player(stage)
 {
     //オブジェクトの構築、メンバ変数の初期化
      // 敵を3台生成(例)
-    //enemies.push_back(new EnemyCPU(stage, AIDifficulty::Easy, AIType::Attack));
-    enemies.push_back(new EnemyCPU(stage, AIDifficulty::Normal, AIType::Balance));
-    enemies.push_back(new EnemyCPU(stage, AIDifficulty::Hard, AIType::Defense));
-    enemies.push_back(new EnemyCPU(stage, AIDifficulty::Normal, AIType::ScrapHunter));
+    enemies.push_back(new EnemyCPU(stage, enemyDifficulty, AIType::Attack));
+    enemies.push_back(new EnemyCPU(stage, enemyDifficulty, AIType::Balance));
+    enemies.push_back(new EnemyCPU(stage, enemyDifficulty, AIType::Defense));
+    enemies.push_back(new EnemyCPU(stage, enemyDifficulty, AIType::ScrapHunter));
+
+	miniMap = new MiniMap(1000, 20, 180, 180, 1700.0f, 1700.0f, &stage);
 }
 
 PlayScene::~PlayScene()
@@ -25,6 +27,8 @@ PlayScene::~PlayScene()
         delete enemy;
     }
     enemies.clear();
+
+	delete miniMap;
 
     DeleteGraph(LowSpeedMeter);
     DeleteGraph(MeterNeedle);
@@ -73,27 +77,32 @@ void PlayScene::Initialize()
     camera.Initialize();
     itemManager.Initialize();
 
+    player.SetItemManager(&itemManager);
+
     // 敵の初期化
     for (int i = 0; i < enemies.size(); i++)
     {
         enemies[i]->Initialize();
 
+        enemies[i]->SetItemManager(&itemManager);
+
         // 初期位置をずらす
         enemies[i]->pos = VGet(-5.0f * (i + 1), 10.0f, -10.0f);
 
         // ウェイポイント設定
-        std::vector<VECTOR> waypoints = {
-            VGet(0.0f, 0.0f, 0.0f),          // CP0: スタート/ゴール
-            VGet(-100.0f, 0.0f, -15.0f),     // CP1
-            VGet(-100.0f, 0.0f, -250.0f),    // CP2
-            VGet(100.0f, 0.0f, -250.0f),     // CP3
-            VGet(100.0f, 0.0f, -15.0f)       // CP4
-        };
+        std::vector<VECTOR> waypoints = {};
+        for(int cp = 0; cp < stage.GetTotalCheckpoints(); cp++)
+        {
+            waypoints.push_back(stage.GetCheckpointPos(cp));
+        }
+
         enemies[i]->SetWaypoints(waypoints);
     }
 
     // Car配列を構築(PlaySceneで管理)
     BuildCarList();
+
+	miniMap->Initialize();
 
     // 時間初期化
     oldTime = GetNowCount();
@@ -143,6 +152,9 @@ void PlayScene::Terminate()
     }
 
     allCars.clear();
+
+	delete miniMap;
+	miniMap = nullptr;
 
     DeleteGraph(LowSpeedMeter);
     DeleteGraph(MeterNeedle);
@@ -364,6 +376,7 @@ void PlayScene::CheckGameEnd()
     if (player.Hp <= 0.0f)
     {
         ResultData data;
+		data.enemyDifficulty = enemyDifficulty;
         data.raceTime = totalTime;
         data.finalSpeed = player.moveSpeed;
         data.finalHp = player.Hp;
@@ -387,6 +400,7 @@ void PlayScene::CheckGameEnd()
         }
 
         ResultData data;
+		data.enemyDifficulty = enemyDifficulty;
         data.raceTime = totalTime;
         data.finalSpeed = player.moveSpeed;
         data.finalHp = player.Hp;
@@ -532,11 +546,11 @@ void PlayScene::DrawRaceUI()
         float lowSpeedRatio = lowSpeedAngleRange / 180.0f;   // 全体(185度)に対する割合
 
         DrawArcImageMeter(
-            1121, 573,
+            1120, 573,
             LowSpeedMeter,
             lowSpeedRatio,
-            87.0f,
-            97.0f,
+            85.0f,
+            100.0f,
             -170.0f,
             180.0f
         );
@@ -545,11 +559,11 @@ void PlayScene::DrawRaceUI()
     {
         // 低速メーターは満タン表示
         DrawArcImageMeter(
-            1121, 573,
+            1120, 573,
             LowSpeedMeter,
             1.0f,
-            87.0f,
-            97.0f,
+            85.0f,
+            100.0f,
             -170.0f,
             185.0f
         );
@@ -563,13 +577,13 @@ void PlayScene::DrawRaceUI()
         if (highSpeedRatio > 1.0f) highSpeedRatio = 1.0f;
 
         DrawArcImageMeter(
-            1120, 572,
+            1120, 573,
             HighSpeedMeter,
             highSpeedRatio,
             85.0f,
             100.0f,
             15.0f,
-            60.0f
+            55.0f
         );
     }
 
@@ -588,11 +602,11 @@ void PlayScene::DrawRaceUI()
     }
 
     DrawArcImageMeter(
-        1122, 572,      // 中心座標
+        1121, 572,      // 中心座標
         hpMeterHandle,      // HP画像
         hpRatio,            // 表示割合
-        105.0f,             // 内側半径
-        125.0f,             // 外側半径
+        103.0f,             // 内側半径
+        123.0f,             // 外側半径
         -170.0f,            // 開始角度
         240.0f              // 角度範囲（全周）
     );
@@ -623,6 +637,8 @@ void PlayScene::DrawRaceUI()
         DrawFormatString(10, 30, GetColor(255, 255, 0),
             "BEST LAP: %.2f", bestLapTime);
     }
+
+	miniMap->Draw(allCars, 0); // プレイヤーはインデックス0
 }
 
 void PlayScene::DrawArcImageMeter(int centerX, int centerY, int graphHandle, float ratio, float innerRadius, float outerRadius, float startAngleDeg, float totalAngleDeg)
@@ -695,32 +711,30 @@ void PlayScene::DrawPlayerDebugUI()
     //プレイヤー座標操作
     ImGui::Separator();
     ImGui::Text("Player Position");
-    ImGui::SliderFloat("X", &player.pos.x, -100.0f, 100.0f);
-    ImGui::SliderFloat("Y", &player.pos.y, -100.0f, 100.0f);
-    ImGui::SliderFloat("Z", &player.pos.z, -100.0f, 100.0f);
+    ImGui::InputFloat("X", &player.pos.x, -100.0f, 100.0f);
+    ImGui::InputFloat("Y", &player.pos.y, -100.0f, 100.0f);
+    ImGui::InputFloat("Z", &player.pos.z, -100.0f, 100.0f);
 
     //カメラ座標操作
     ImGui::Separator();
     ImGui::Text("Camera Position");
     static float cameraDistance = 15.0f;
-    static float cameraHeight = 0.0f;
+    static float cameraHeight = 4.0f;
     static float targetOffsetY = 0.0f;
     static float cameraNear = 0.1f;
     static float cameraFar = 500.0f;
 
-    ImGui::SliderFloat("Distance", &cameraDistance, 0.0f, 1500.0f);
-    ImGui::SliderFloat("Height", &cameraHeight, 0.0f, 1000.0f);
-    ImGui::SliderFloat("Target Offset Y", &targetOffsetY, -20.0f, 1020.0f);
-    ImGui::SliderFloat("cameraNear", &cameraNear, 0.0f, 10000.0f);
-    ImGui::SliderFloat("cameraFar", &cameraFar, 0.0f, 10000.0f);
-    // 値をCameraクラスに渡す（TPS視点用に）
-    camera.SetDebugCameraParams(cameraDistance, cameraHeight, targetOffsetY, cameraNear, cameraFar);
+    ImGui::InputFloat("Distance", &cameraDistance, 0.0f, 1500.0f);
+    ImGui::InputFloat("Height", &cameraHeight, 0.0f, 1000.0f);
+    ImGui::InputFloat("Target Offset Y", &targetOffsetY, -20.0f, 1020.0f);
+    ImGui::InputFloat("cameraNear", &cameraNear, 0.0f, 10000.0f);
+    ImGui::InputFloat("cameraFar", &cameraFar, 0.0f, 10000.0f);
 
     //コリジョン判定
     ImGui::Separator();
     ImGui::Text("Collision Settings");
-    ImGui::SliderFloat("Capsule Radius", &player.capsuleRadius, 0.5f, 5.0f);
-    ImGui::SliderFloat("Capsule Height", &player.capsuleHeight, 1.0f, 10.0f);
+    ImGui::InputFloat("Capsule Radius", &player.capsuleRadius, 0.5f, 5.0f);
+    ImGui::InputFloat("Capsule Height", &player.capsuleHeight, 1.0f, 10.0f);
 
     // デルタタイム
     ImGui::Separator();

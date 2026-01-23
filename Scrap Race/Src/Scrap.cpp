@@ -14,6 +14,7 @@ void Scrap::Initialize(const VECTOR& position, ScrapType scraptype, int normalMo
 	type = scraptype;
 	collected = false;
 	invincibleTime = 0.0f;
+	isBeingMagnetized = false;
 
 	//type別回復量変化
 	switch (type) {
@@ -21,13 +22,11 @@ void Scrap::Initialize(const VECTOR& position, ScrapType scraptype, int normalMo
 		healAmount = 5.0f; 
 		spdMaxBoost = 5.0f;
 		spdUpBoost = 0.05f;
-		spdDownBoost = 0.05f;
 		break;
 	case ScrapType::Rare:
 		healAmount = 15.0f;
 		spdMaxBoost = 10.0f;
 		spdUpBoost = 0.1f;
-		spdDownBoost = 0.1f;
 		break;
 	}
 
@@ -47,7 +46,10 @@ void Scrap::Update(float deltaTime, int checkColModel)
 
 	invincibleTime -= deltaTime;
 
-	vel.y += GRAVITY * deltaTime;
+	if (!isBeingMagnetized)
+	{
+		vel.y += GRAVITY * deltaTime;
+	}
 
 	pos = VAdd(pos, VScale(vel, deltaTime));
 
@@ -88,24 +90,12 @@ void Scrap::Update(float deltaTime, int checkColModel)
 			}
 		}
 	}
+	// 引き寄せフラグをリセット（次フレームで再判定）
+	isBeingMagnetized = false;
 }
 
 void Scrap::Draw()
 {
-	//デバッグ用、あとで消す 
-	switch (type)
-	{
-	case ScrapType::Normal:
-		DrawSphere3D(pos, 2.0f, 32, GetColor(255, 0, 0), GetColor(255, 255, 255), FALSE);
-		break;
-	case ScrapType::Rare:
-		DrawSphere3D(pos, 2.0f, 32, GetColor(0, 255, 0), GetColor(255, 255, 255), FALSE);
-		break;
-	default:
-		break;
-	}
-	
-
 	if (modelHandle < 0) return;
 	MV1SetPosition(modelHandle, pos);
 	MV1DrawModel(modelHandle);
@@ -122,20 +112,10 @@ void Scrap::CheckCollision(CarBase& car)
 	{
 		collected = true;
 		car.Heal(healAmount);
-		int randomStat = rand() % 2;  // 0 or 1
 
-		if (randomStat == 0)
-		{
-			// 最高速度UP
-			car.BoostStatus(spdMaxBoost, 0.0f);
-			//printfDx("Scrap取得！ HP+%.1f, SpdMax+%.1f\n", healAmount, spdMaxBoost);
-		}
-		else
-		{
-			// 加速力UP
-			car.BoostStatus(0.0f, spdUpBoost);
-			//printfDx("Scrap取得！ HP+%.1f, SpdUp+%.2f\n", healAmount, spdUpBoost);
-		}
+		// 最高速度UP
+		car.BoostStatus(spdMaxBoost, 0.0f);
+		//printfDx("Scrap取得！ HP+%.1f, SpdMax+%.1f\n", healAmount, spdMaxBoost);
 	}
 }
 
@@ -147,4 +127,40 @@ void Scrap::SetVelocity(const VECTOR& velocity)
 void Scrap::SetInvincibleTime(float time)
 {
 	invincibleTime = time;
+}
+
+void Scrap::ApplyMagnetism(const VECTOR& carPos, float deltaTime)
+{
+	if (collected) return;
+	if (invincibleTime > 0.0f) return;
+
+	VECTOR toCar = VSub(carPos, pos);
+	float dist = VSize(toCar);
+
+	// 引き寄せ範囲内かチェック
+	if (dist < magnetRange)
+	{
+		isBeingMagnetized = true;
+
+		// 正規化して方向ベクトルを取得
+		VECTOR direction = VNorm(toCar);
+
+		// 距離に応じて引き寄せ力を調整（近いほど強く）
+		float forceMult = 1.0f - (dist / magnetRange);
+		forceMult = forceMult * forceMult; // 二乗で非線形に
+
+		// 引き寄せ速度を計算
+		VECTOR magnetVel = VScale(direction, magnetForce * forceMult);
+
+		// 既存の速度に引き寄せ速度を加算（徐々に加速）
+		vel = magnetVel;
+
+		// 速度制限（速すぎないように）
+		float speed = VSize(vel);
+		float maxSpeed = magnetForce * 1.5f;
+		if (speed > maxSpeed)
+		{
+			vel = VScale(VNorm(vel), maxSpeed);
+		}
+	}
 }

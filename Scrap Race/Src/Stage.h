@@ -18,6 +18,15 @@ public:
 	VECTOR GetCheckpointPos(int index) const;
 	void DrawCheckpoints() const;
 
+	struct Checkpoint
+	{
+		VECTOR pos;
+		float width;
+		float height;
+		float depth;
+	};
+
+	std::vector<Checkpoint> checkpoints;
 private:
 	int StageModelHandle = -1;
 	int CheckColModel = -1;
@@ -31,14 +40,4 @@ private:
 	bool wasInside;
 	float inZ;
 	float outZ;
-
-	struct Checkpoint
-	{
-		VECTOR pos;
-		float width;
-		float height;
-		float depth;
-	};
-
-	std::vector<Checkpoint> checkpoints;
 };

@@ -68,6 +68,6 @@ private:
     static constexpr float MAX_GROUND_HEIGHT = 100.0f;
 
     // Scrapè„å¿
-    static constexpr size_t MAX_SCRAPS = 20;
-	static constexpr size_t MAX_SCRAPS_RARE = 30;
+    static constexpr size_t MAX_SCRAPS = 50;
+	static constexpr size_t MAX_SCRAPS_RARE = 50;
 };

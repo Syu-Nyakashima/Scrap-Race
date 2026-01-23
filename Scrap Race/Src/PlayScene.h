@@ -5,12 +5,13 @@
 #include "Stage.h"
 #include "ItemManager.h"
 #include "EnemyCPU.h"
+#include "MiniMap.h"
 #include <vector>
 
 class PlayScene : public BaseScene
 {
 public:
-    PlayScene();   // コンストラクタ
+    PlayScene(AIDifficulty difficulty);   // コンストラクタ
     ~PlayScene() override;  // デストラクタ
 
     void Initialize() override;
@@ -28,6 +29,8 @@ private:
 
     GameState gameState;           // 現在のゲーム状態
     float countDownTimer;          // カウントダウン用タイマー
+
+	AIDifficulty enemyDifficulty;  // 敵の難易度設定
 
     // カウントダウン用画像ハンドル
     int countDownImages[4];
@@ -55,6 +58,8 @@ private:
     Stage stage;
     Camera camera;
     ItemManager itemManager;
+
+    MiniMap* miniMap;
 
     // 時間管理
     float deltaTime = 0.0f;
