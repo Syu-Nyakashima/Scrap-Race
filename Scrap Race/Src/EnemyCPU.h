@@ -48,7 +48,17 @@ private:
     void SteerToTarget(VECTOR targetPos, float delta);
     void HandleAcceleration(float delta);
     float CalculateTargetSpeed() const;
+
+    // ドリフト判定
+    void UpdateDriftDecision(float angleDiff, float delta);
+    bool ShouldStartDrift(float angleDiff) const;
+    void HandleDrift(float delta);
     
+    // 壁検出用
+    bool DetectWallAhead(float checkDistance);
+    void UpdateWallAvoidance(float delta);
+    VECTOR CalculateAvoidanceTarget();
+
     //スタック検出
     void CheckStuckState(float delta);
 
@@ -84,6 +94,12 @@ private:
     float errorDuration;         // エラー継続時間
     bool isInError;              // エラー状態中
 
+    // ドリフト関連
+	bool shouldDrift;
+    float driftSkill;
+    float lastAngleDiff;
+    int driftFrameCount;
+
     // ウェイポイント(コース上の目標地点)
     std::vector<VECTOR> waypoints;
     int currentWaypointIndex;
@@ -104,6 +120,10 @@ private:
     float consecutiveWallHits;    // 連続衝突カウント
     float wallHitCooldown;        // 壁衝突クールダウン
     float lastWallHitTime;        // 最後の壁衝突時刻
+    bool isAvoidingWall;           // 壁回避モード中か
+    float avoidanceTimer;          // 回避行動の継続時間
+    VECTOR avoidanceTarget;        // 一時的な回避目標
+    int wallAvoidDirection;        // 回避方向 (1=右, -1=左)
 
     // 壁衝突回復
     float wallHitRecoveryTimer;

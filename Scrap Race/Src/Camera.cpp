@@ -1,17 +1,16 @@
-#include "Camera.h"
+ï»¿#include "Camera.h"
 #include <math.h>
 
 void Camera::Initialize()
 {
     Eye = VGet(0.0f, 0.0f, 0.0f);
     Target = VGet(0.0f, 1.0f, 0.0f);
-    isDebugOverView = false;
 
     smoothEye = Eye;
     smoothTarget = Target;
 
-    // Near, Far ƒNƒŠƒbƒv‚Ì‹——£‚ğİ’è
-    SetCameraNearFar(debugNear, debugFar);
+    // Near, Far ã‚¯ãƒªãƒƒãƒ—ã®è·é›¢ã‚’è¨­å®š
+    SetCameraNearFar(Near, Far);
 }
 
 void Camera::Terminate() 
@@ -26,48 +25,65 @@ static VECTOR Lerp(const VECTOR& a, const VECTOR& b, float t)
 void Camera::Update(const Player& player, float delta)
 {
     VECTOR playerPos = player.pos;
-    // ƒvƒŒƒCƒ„[‚ÌŠp“xiƒ‰ƒWƒAƒ“j
-    float rad = player.angle * DX_PI_F / 180.0f;
+    float playerAngle = player.angle;
+    static float cameraAngle = playerAngle;
 
-    // TPS‹“_iŒã‚ë‚©‚ç’Ç]j
-    VECTOR offset = VGet(sinf(rad) * -debugDist, debugHeight, cosf(rad) * -debugDist);
+    // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã¨ã‚«ãƒ¡ãƒ©ã®è§’åº¦å·®ã‚’è¨ˆç®—(-180ã€œ180åº¦ã«æ­£è¦åŒ–)
+    float angleDiff = playerAngle - cameraAngle;
+    while (angleDiff > 180.0f) angleDiff -= 360.0f;
+    while (angleDiff < -180.0f) angleDiff += 360.0f;
 
-    // –Ú•WˆÊ’u‚ğŒvZ(‘¦À‚É‚Í“K—p‚µ‚È‚¢)
+    // Â±20åº¦ã®ãƒ‡ãƒƒãƒ‰ã‚¾ãƒ¼ãƒ³
+    const float deadZone = 20.0f;
+    if (angleDiff > deadZone) {
+        cameraAngle += angleDiff - deadZone;
+    }
+    else if (angleDiff < -deadZone) {
+        cameraAngle += angleDiff + deadZone;
+    }
+
+    // ã‚«ãƒ¡ãƒ©ã®è§’åº¦ã‚’0ã€œ360åº¦ã«æ­£è¦åŒ–
+    while (cameraAngle >= 360.0f) cameraAngle -= 360.0f;
+    while (cameraAngle < 0.0f) cameraAngle += 360.0f;
+
+    float rad = cameraAngle * DX_PI_F / 180.0f;
+
+    // ç›®æ¨™ã‚ªãƒ•ã‚»ãƒƒãƒˆ
+    VECTOR offset = VGet(sinf(rad) * -Dist, Height, cosf(rad) * -Dist);
     VECTOR targetEye = VAdd(playerPos, offset);
-    VECTOR targetTarget = VAdd(playerPos, VGet(0.0f, debugTargetOffsetY, 0.0f));
 
-    // w”ŠÖ”“I•âŠÔ(ƒtƒŒ[ƒ€ƒŒ[ƒg“Æ—§)
+    // è£œé–“
     float lerpFactor = 1.0f - expf(-CAMERA_LERP_SPEED * delta);
-
-    // ŠŠ‚ç‚©‚É•âŠÔ
     smoothEye = Lerp(smoothEye, targetEye, lerpFactor);
 
-    // ‹——£‚ğˆê’è‚É•Û‚ÂFsmoothEye‚©‚çplayerPos‚Ö‚Ì•ûŒü‚ğ³‹K‰»‚µ‚ÄA³‚µ‚¢‹——£‚ğ“K—p
+    // è·é›¢ã‚’ä¸€å®šã«ä¿ã¤
     VECTOR toEye = VSub(smoothEye, playerPos);
-    float horizontalDistX = toEye.x;
-    float horizontalDistZ = toEye.z;
-    float currentDist = sqrtf(horizontalDistX * horizontalDistX + horizontalDistZ * horizontalDistZ);
-
-    if (currentDist > 0.0f) {
-        float scale = debugDist / currentDist;
-        smoothEye.x = playerPos.x + horizontalDistX * scale;
-        smoothEye.z = playerPos.z + horizontalDistZ * scale;
+    float currentDist = sqrtf(toEye.x * toEye.x + toEye.z * toEye.z);
+    if (currentDist > 0.01f) {
+        float scale = Dist / currentDist;
+        toEye.x *= scale;
+        toEye.z *= scale;
     }
-    smoothTarget = VAdd(playerPos, VGet(0.0f, debugTargetOffsetY, 0.0f));
+    // Yæ–¹å‘ã®è·é›¢ã‚‚è£œæ­£
+    float currentDistY = toEye.y;
+    toEye.y = Height;
 
-    // V‚µ‚¢ˆÊ’u‚ğİ’è
-    Eye = smoothEye;
-    Target = smoothTarget;
+    Eye = VAdd(playerPos, toEye);
+    Target = VAdd(playerPos, VGet(0.0f, TargetOffsetY, 0.0f));
 
-    // ’n–Ê‚æ‚è‰º‚É‚È‚ç‚È‚¢‚æ‚¤‚É
+    // åœ°é¢ã‚ˆã‚Šä¸‹ã«ãªã‚‰ãªã„ã‚ˆã†ã«
     if (Eye.y < 5.0f) {
         Eye.y = 5.0f;
-        smoothEye.y = 5.0f;  // smoothEye‚àXV
+    }
+    // åœ°é¢ã‚ˆã‚Šä¸‹ã«ãªã‚‰ãªã„ã‚ˆã†ã«
+    if (Eye.y < 5.0f) {
+        Eye.y = 5.0f;
+        smoothEye.y = 5.0f;  // smoothEyeã‚‚æ›´æ–°
     }
 
     SetCameraPositionAndTarget_UpVecY(Eye, Target);
-    SetCameraNearFar(debugNear, debugFar);
+    SetCameraNearFar(Near, Far);
 
     VECTOR forward = VGet(sinf(rad), 0.0f, cosf(rad));
-    DrawLine3D(playerPos, VAdd(playerPos, VScale(forward, 200.0f)), GetColor(255, 255, 0)); // ‰©ü‚ª‘O•ûŒü
+    DrawLine3D(playerPos, VAdd(playerPos, VScale(forward, 200.0f)), GetColor(255, 255, 0)); // é»„ç·šãŒå‰æ–¹å‘
 }

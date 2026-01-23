@@ -100,7 +100,7 @@ void Result::DrawClear()
     DrawGraph(800, 600, MenuButtonImage[selectedMenu], true);
 
     if (data.Rank >= 1 && data.Rank <= 10) {
-        DrawGraph(600, 280, RankUI[data.Rank], true);
+        DrawGraph(400, 340, RankUI[data.Rank], true);
     }
 }
 
@@ -109,7 +109,7 @@ void Result::ExecuteMenu()
     switch (selectedMenu)
     {
     case RESULT_RETRY:
-        SceneManager::ChangeScene(new PlayScene());
+        SceneManager::ChangeScene(new PlayScene(data.enemyDifficulty));
         break;
 
     //case RESULT_STAGE_SELECT:

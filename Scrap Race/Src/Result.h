@@ -1,5 +1,6 @@
 #pragma once
 #include "BaseScene.h"
+#include "EnemyCPU.h"
 
 enum ResultType
 {
@@ -19,6 +20,7 @@ enum ResultSelect
 // リザルト情報を渡すための構造体
 struct ResultData
 {
+	AIDifficulty enemyDifficulty; // 敵の難易度
     float raceTime;           // 走行タイム
     float finalSpeed;         // 最終速度
     float finalHp;

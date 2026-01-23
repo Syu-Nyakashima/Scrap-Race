@@ -3,7 +3,8 @@
 #include "ItemManager.h"
 
 CarBase::CarBase(Stage& stageRef)
-	: stage(stageRef), ModelHandle(-1), hitWall(false), wasHitWall(false), onGround(false), justHitWall(false), allCars(nullptr)
+	: stage(stageRef), ModelHandle(-1), hitWall(false), wasHitWall(false), onGround(false),
+    justHitWall(false), allCars(nullptr), itemManager(nullptr), hpDrainSum(0.0f), lastHP(100.0f)
 {
 	// メンバ変数の初期化のみ、Initializeで初期化
 }
@@ -22,6 +23,8 @@ void CarBase::Initialize()
     pos = VGet(0.0f, 10.0f, 0.0f);
     vel = VGet(0.0f, 0.0f, 0.0f);
     angle = 0.0f;
+	driftAngle = 0.0f;
+	lateralVelocity = 0.0f;
     groundNormal = VGet(0.0f, 1.0f, 0.0f);
 
     // ステータス初期化
@@ -42,6 +45,7 @@ void CarBase::Initialize()
     onGround = false;
     isGoal = false;
     justHitWall = false;
+	isDrifting = false;
 
     currentLap = 1;
     currentCheckpoint = 0;
@@ -82,6 +86,7 @@ void CarBase::Heal(float amount)
     if (Hp > 100.0f) {
         Hp = 100.0f;
     }
+    lastHP = Hp;  // 回復時も更新
 }
 
 void CarBase::BoostStatus(float spdMaxBoost, float spdUpBoost)
@@ -97,9 +102,29 @@ void CarBase::DrainStatusOverTime(float delta)
 {
     SpdMax -= STATUS_DRAIN_SPD_MAX * delta;
     if (SpdMax < MIN_SPD_MAX) SpdMax = MIN_SPD_MAX;
+}
 
-    SpdUp -= STATUS_DRAIN_SPD_UP * delta;
-    if (SpdUp < MIN_SPD_UP) SpdUp = MIN_SPD_UP;
+void CarBase::CheckHPDropScrap()
+{
+    // HPの減少量を計算
+    float hpDrop = lastHP - Hp;
+
+    // HPが減少していれば蓄積
+    if (hpDrop > 0.0f) {
+        hpDrainSum += hpDrop;
+
+        // 閾値を超えたらRareScrap生成
+        if (hpDrainSum >= HP_DROP_THRESHOLD) {
+            if (itemManager != nullptr) {
+                int count = static_cast<int>(hpDrainSum / HP_DROP_THRESHOLD);
+                itemManager->SpawnRareScrap(pos, angle, stage.GetCheckColModel(), count);
+            }
+            hpDrainSum = 0.0f;
+        }
+    }
+
+    // 現在のHPを記録
+    lastHP = Hp;
 }
 
 void CarBase::UpdatePhysics(float delta)
@@ -107,9 +132,28 @@ void CarBase::UpdatePhysics(float delta)
     // 角度から進行方向を計算
     float rad = angle * DX_PI_F / 180.0f;
 
+	// 前方速度ベクトル
+    VECTOR forwardVel;
+    forwardVel.x = sinf(rad) * moveSpeed * delta;
+    forwardVel.z = cosf(rad) * moveSpeed * delta;
+    forwardVel.y = 0.0f;
+
+	// 横方向速度ベクトル
+	VECTOR lateralVel = VGet(0.0f, 0.0f, 0.0f);
+
+	// ドリフト中は横方向の速度を加算
+    if (isDrifting)
+    {
+        // 車の右方向ベクトル（車の向き + 90度）
+        float rightRad = (angle + 90.0f) * DX_PI_F / 180.0f;
+        lateralVel.x = sinf(rightRad) * lateralVelocity * delta;
+        lateralVel.z = cosf(rightRad) * lateralVelocity * delta;
+        lateralVel.y = 0.0f;
+    }
+
     // 速度計算
-    vel.x = sinf(rad) * moveSpeed * delta;
-    vel.z = cosf(rad) * moveSpeed * delta;
+    vel.x = forwardVel.x + lateralVel.x;
+    vel.z = forwardVel.z + lateralVel.z;
     vel.y += GRAVITY * delta;
 
     // 位置更新
@@ -455,6 +499,14 @@ void CarBase::ProcessCarCollision(CarBase* otherCar,float currentDist)
             //printfDx("衝突 Damage: %.2f (RelSpeed: %.1f)\n", damage, relativeSpeed);
         }
 
+        // 相対速度が一定以上ならRareScrap生成
+        if (relativeSpeed >= CAR_COLLISION_SCRAP_SPEED_THRESHOLD)
+        {
+            // 衝突地点（2台の中間地点）
+            VECTOR collisionPos = VScale(VAdd(pos, otherPos), 0.5f);
+            SpawnCarCollisionScrap(collisionPos, relativeSpeed);
+        }
+
         // 自分の進行方向
         VECTOR myDir = VGet(0.0f, 0.0f, 0.0f);
         if (mySpeed > 0.1f) {
@@ -467,7 +519,7 @@ void CarBase::ProcessCarCollision(CarBase* otherCar,float currentDist)
         // 相手が自分に向かっているか
         VECTOR otherDir = VGet(0.0f, 0.0f, 0.0f);
         if (otherSpeed > 0.1f) {
-            otherDir = VNorm(otherVel);  // ← 修正: VNorm使用
+            otherDir = VNorm(otherVel);  // VNorm使用
         }
         float otherDot = VDot(otherDir, VScale(collisionDir, -1.0f));
 
@@ -515,7 +567,7 @@ void CarBase::ProcessCarCollision(CarBase* otherCar,float currentDist)
                 else
                 {
                     GetPushed(collisionDir, otherSpeed);
-                    printfDx("Car collision: HEAD-ON (I'm slower: %.1f < %.1f)\n", mySpeed, otherSpeed);
+                    //printfDx("Car collision: HEAD-ON (I'm slower: %.1f < %.1f)\n", mySpeed, otherSpeed);
                 }
             }
         }
@@ -629,4 +681,24 @@ void CarBase::GetPushed(VECTOR collisionDir, float pusherSpeed)
     if (moveSpeed > 0.1f) {
         angle = atan2f(vel.x, vel.z) * 180.0f / DX_PI_F;
     }
+}
+
+void CarBase::SpawnCarCollisionScrap(VECTOR collisionPos, float relativeSpeed)
+{
+    if (itemManager == nullptr) return;
+
+    // 相対速度に応じてスクラップ数を決定
+    int scrapCount = 1;
+    if (relativeSpeed >= 80.0f) {
+        scrapCount = 5;  // 超高速衝突
+    }
+    else if (relativeSpeed >= 60.0f) {
+        scrapCount = 3;  // 高速衝突
+    }
+    else if (relativeSpeed >= 40.0f) {
+        scrapCount = 2;  // 中速衝突
+    }
+
+    // 衝突地点からスクラップを生成
+    itemManager->SpawnRareScrap(collisionPos, angle, stage.GetCheckColModel(), scrapCount);
 }

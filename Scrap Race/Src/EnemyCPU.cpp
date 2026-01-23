@@ -1,4 +1,5 @@
-#include "EnemyCPU.h"
+ï»¿#include "EnemyCPU.h"
+#include "ItemManager.h"
 
 EnemyCPU::EnemyCPU(Stage& stageRef, AIDifficulty diff, AIType type)
     : CarBase(stageRef), difficulty(diff), type(type),
@@ -7,7 +8,7 @@ EnemyCPU::EnemyCPU(Stage& stageRef, AIDifficulty diff, AIType type)
     errorTimer(0.0f), isInError(false), wallHitRecoveryTimer(0.0f),
     consecutiveWallHits(0), wallHitCooldown(0.0f), lastWallHitTime(0.0f)
 {   
-    // “ïˆÕ“x•Êƒpƒ‰ƒ[ƒ^İ’è
+    // é›£æ˜“åº¦åˆ¥ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿è¨­å®š
     switch (difficulty)
     {
     case AIDifficulty::Easy:
@@ -17,6 +18,7 @@ EnemyCPU::EnemyCPU(Stage& stageRef, AIDifficulty diff, AIType type)
         errorRate = 0.3f;
         errorDuration = 3.0f;
         SpdMax = 120.0f;
+		driftSkill = 0.4f;
         break;
 
     case AIDifficulty::Normal:
@@ -24,9 +26,10 @@ EnemyCPU::EnemyCPU(Stage& stageRef, AIDifficulty diff, AIType type)
         corneringSkill = 0.8f;
         recoverySpeed = 0.8f;
         errorRate = 0.15f;
-            errorDuration = 2.0f;
-            SpdMax = 150.0f;
-            break;
+        errorDuration = 2.0f;
+        SpdMax = 150.0f;
+		driftSkill = 0.7f;
+        break;
 
     case AIDifficulty::Hard:
         reactionTime = 0.05f;
@@ -35,10 +38,11 @@ EnemyCPU::EnemyCPU(Stage& stageRef, AIDifficulty diff, AIType type)
         errorRate = 0.05f;
         errorDuration = 1.0f;
         SpdMax = 180.0f;
+		driftSkill = 0.9f;
         break;
     }
 
-    // «Ši•Êƒpƒ‰ƒ[ƒ^İ’è
+    // æ€§æ ¼åˆ¥ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿è¨­å®š
     SetTypeParameters();
 }
 
@@ -52,7 +56,7 @@ void EnemyCPU::Initialize()
 
     //ModelHandle = MV1LoadModel();
     if (ModelHandle == -1) {
-        //printfDx("“Gƒ‚ƒfƒ‹“Ç‚İ‚İ¸”sIƒvƒŒƒCƒ„[ƒ‚ƒfƒ‹g—p\n");
+        //printfDx("æ•µãƒ¢ãƒ‡ãƒ«èª­ã¿è¾¼ã¿å¤±æ•—ï¼ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãƒ¢ãƒ‡ãƒ«ä½¿ç”¨\n");
         ModelHandle = MV1LoadModel("Data/Model/free_car_1.mv1");
     }
 
@@ -62,13 +66,35 @@ void EnemyCPU::Initialize()
     isStuck = false;
     lastPos = pos;
     hasNearestScrap = false;
+
+	//ã‚¨ãƒ©ãƒ¼æŒ™å‹•åˆæœŸåŒ–
     errorTimer = 0.0f;
     isInError = false;
+
+	//å£è¡çªå›å¾©åˆæœŸåŒ–
     wallHitRecoveryTimer = 0.0f;
+
+	//ã‚¦ã‚§ã‚¤ãƒã‚¤ãƒ³ãƒˆåˆæœŸåŒ–
     lastWaypointDist = 99999.0f;
+
+    //ãƒ‰ãƒªãƒ•ãƒˆåˆæœŸåŒ–
+    isDrifting = false;
+    driftAngle = 0.0f;
+    lateralVelocity = 0.0f;
+    shouldDrift = false;
+    lastAngleDiff = 0.0f;
+    driftFrameCount = 0;
+
+	//å£è¡çªåˆæœŸåŒ–
     consecutiveWallHits = 0;
     wallHitCooldown = 0.0f;
     lastWallHitTime = 0.0f;
+
+	//å£æ¤œå‡ºåˆæœŸåŒ–
+    isAvoidingWall = false;
+    avoidanceTimer = 0.0f;
+    avoidanceTarget = VGet(0.0f, 0.0f, 0.0f);
+    wallAvoidDirection = 0;
 }
 
 void EnemyCPU::Terminate()
@@ -78,50 +104,55 @@ void EnemyCPU::Terminate()
 
 void EnemyCPU::Update(float delta)
 {
-    // HP©‘RŒ¸­
+    // HPè‡ªç„¶æ¸›å°‘
     Hp -= HP_DRAIN_PER_FRAME;
     if (Hp <= 0.0f) {
         Hp = 0.0f;
-        return; // €–S‚Í“®‚©‚È‚¢
+        return; // æ­»äº¡æ™‚ã¯å‹•ã‹ãªã„
     }
 
-    //ƒXƒe[ƒ^ƒXŒ¸­
+    // HPæ¸›å°‘ã«ã‚ˆã‚‹ã‚¹ã‚¯ãƒ©ãƒƒãƒ—ç”Ÿæˆãƒã‚§ãƒƒã‚¯
+    CheckHPDropScrap();
+
+    //ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹æ¸›å°‘
     DrainStatusOverTime(delta);
 
-    // AIvl
+    // AIæ€è€ƒ
     ThinkAI(delta);
 
-    //ƒGƒ‰[‹““®
+    //ã‚¨ãƒ©ãƒ¼æŒ™å‹•
     UpdateErrorBehavior(delta);
 
-    // •ÇÕ“ËƒN[ƒ‹ƒ_ƒEƒ“XV
+    // å£è¡çªã‚¯ãƒ¼ãƒ«ãƒ€ã‚¦ãƒ³æ›´æ–°
     if (wallHitCooldown > 0.0f) {
         wallHitCooldown -= delta;
     }
 
-    // •ÇÕ“Ë‰ñ•œƒ^ƒCƒ}[XV
+    // å£è¡çªå›å¾©ã‚¿ã‚¤ãƒãƒ¼æ›´æ–°
     if (wallHitRecoveryTimer > 0.0f) {
         wallHitRecoveryTimer -= delta;
     }
 
-    // “ü—Íˆ—(AI‚ªŒˆ’è)
+    // å…¥åŠ›å‡¦ç†(AIãŒæ±ºå®š)
     UpdateInput(delta);
 
-    // •¨—‰‰Z
+    // ç‰©ç†æ¼”ç®—
     UpdatePhysics(delta);
 
-    // Õ“Ë”»’è
+    // è¡çªåˆ¤å®š
     UpdateCollision(delta);
 
-    // •ÇÕ“ËŒŸo 
+    // å£è¡çªæ¤œå‡º 
     if (justHitWall) {
         OnWallHit();
+
+		justHitWall = false; // å‡¦ç†æ¸ˆã¿ã«ã™ã‚‹
     }
 
-    // ƒXƒ^ƒbƒNŒŸo
+    // ã‚¹ã‚¿ãƒƒã‚¯æ¤œå‡º
     CheckStuckState(delta);
 
-    // ˜A‘±Õ“ËƒJƒEƒ“ƒg‚ÌŒ¸Š(2•bŠÔÕ“Ë‚ª‚È‚¯‚ê‚ÎƒŠƒZƒbƒg)
+    // é€£ç¶šè¡çªã‚«ã‚¦ãƒ³ãƒˆã®æ¸›è¡°(2ç§’é–“è¡çªãŒãªã‘ã‚Œã°ãƒªã‚»ãƒƒãƒˆ)
     lastWallHitTime += delta;
     if (lastWallHitTime > 2.0f && consecutiveWallHits > 0) {
         consecutiveWallHits -= delta * 0.5f;
@@ -134,27 +165,27 @@ void EnemyCPU::SetTypeParameters()
     switch (type)
     {
     case AIType::Attack:
-        aggressiveness = 1.0f;      // •Ç‚ğ‹C‚É‚µ‚È‚¢
-        scrapPriority = 0.3f;       // ƒXƒNƒ‰ƒbƒv—Dæ“x’á
-        corneringSkill *= 0.8f;     // ƒR[ƒiƒŠƒ“ƒO‰ºè
+        aggressiveness = 1.0f;      // å£ã‚’æ°—ã«ã—ãªã„
+        scrapPriority = 0.3f;       // ã‚¹ã‚¯ãƒ©ãƒƒãƒ—å„ªå…ˆåº¦ä½
+        corneringSkill *= 0.8f;     // ã‚³ãƒ¼ãƒŠãƒªãƒ³ã‚°ä¸‹æ‰‹
         break;
 
     case AIType::Defense:
-        aggressiveness = 0.5f;      // •Ç‚ğ”ğ‚¯‚é
-        scrapPriority = 0.5f;       // ƒXƒNƒ‰ƒbƒv—Dæ“x’†
-        corneringSkill *= 1.2f;     // ƒR[ƒiƒŠƒ“ƒOãè
+        aggressiveness = 0.5f;      // å£ã‚’é¿ã‘ã‚‹
+        scrapPriority = 0.5f;       // ã‚¹ã‚¯ãƒ©ãƒƒãƒ—å„ªå…ˆåº¦ä¸­
+        corneringSkill *= 1.2f;     // ã‚³ãƒ¼ãƒŠãƒªãƒ³ã‚°ä¸Šæ‰‹
         break;
 
     case AIType::Balance:
         aggressiveness = 0.75f;
         scrapPriority = 0.5f;
-        // ƒfƒtƒHƒ‹ƒg’l‚Ì‚Ü‚Ü
+        // ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆå€¤ã®ã¾ã¾
         break;
 
     case AIType::ScrapHunter:
         aggressiveness = 0.7f;
-        scrapPriority = 0.9f;       // ƒXƒNƒ‰ƒbƒvÅ—Dæ
-        scrapSearchRadius = 30.0f;  // ’Tõ”ÍˆÍŠg‘å
+        scrapPriority = 0.9f;       // ã‚¹ã‚¯ãƒ©ãƒƒãƒ—æœ€å„ªå…ˆ
+        scrapSearchRadius = 30.0f;  // æ¢ç´¢ç¯„å›²æ‹¡å¤§
         break;
     }
 }
@@ -167,7 +198,7 @@ void EnemyCPU::ThinkAI(float delta)
     {
         thinkTimer = 0.0f;
 
-        // ƒEƒFƒCƒ|ƒCƒ“ƒgXV
+        // ã‚¦ã‚§ã‚¤ãƒã‚¤ãƒ³ãƒˆæ›´æ–°
         UpdateWaypointNavigation();
     }
 }
@@ -179,129 +210,126 @@ void EnemyCPU::UpdateWaypointNavigation()
     VECTOR currentWaypoint = waypoints[currentWaypointIndex];
     float distToWaypoint = VSize(VSub(currentWaypoint, pos));
 
-    // ƒEƒFƒCƒ|ƒCƒ“ƒg“’B”»’è
-    if (distToWaypoint < WAYPOINT_RADIUS) // ƒEƒFƒCƒ|ƒCƒ“ƒg“’B
+    // ã‚¦ã‚§ã‚¤ãƒã‚¤ãƒ³ãƒˆåˆ°é”åˆ¤å®š
+    if (distToWaypoint < WAYPOINT_RADIUS) // ã‚¦ã‚§ã‚¤ãƒã‚¤ãƒ³ãƒˆåˆ°é”
     {
         currentWaypointIndex = (currentWaypointIndex + 1) % waypoints.size();
         lastWaypointDist = 99999.0f;
         //printfDx("Enemy reached waypoint %d\n", currentWaypointIndex);
+        // å£å›é¿ãƒ¢ãƒ¼ãƒ‰ã‚’è§£é™¤
+        isAvoidingWall = false;
+        avoidanceTimer = 0.0f;
         return;
     }
     
-    if (distToWaypoint > lastWaypointDist + 1.0f) // ‹t‘–ŒŸo
+    if (distToWaypoint > lastWaypointDist + 30.0f) // é€†èµ°æ¤œå‡º
     {
         currentWaypointIndex = (currentWaypointIndex + 1) % waypoints.size();
-       //printfDx("EnemyƒEƒFƒCƒ|ƒCƒ“ƒgƒXƒLƒbƒv %d (moving away: %.1f -> %.1f)\n",
+       //printfDx("Enemyã‚¦ã‚§ã‚¤ãƒã‚¤ãƒ³ãƒˆã‚¹ã‚­ãƒƒãƒ— %d (moving away: %.1f -> %.1f)\n",
        //     currentWaypointIndex, lastWaypointDist, distToWaypoint);
-        lastWaypointDist = 99999.0f;  // ƒŠƒZƒbƒg
+        lastWaypointDist = 99999.0f;  // ãƒªã‚»ãƒƒãƒˆ
+        // å£å›é¿ãƒ¢ãƒ¼ãƒ‰ã‚’è§£é™¤
+        isAvoidingWall = false;
+        avoidanceTimer = 0.0f;
     }
     else
     {
-        // ‹——£‚ğXV
+        // è·é›¢ã‚’æ›´æ–°
         lastWaypointDist = distToWaypoint;
     }
 }
 
 void EnemyCPU::UpdateInput(float delta)
 {
-    //•Ç‚ÉÕ“Ë‚µ‚½‚ç
+    //å£ã«è¡çªã—ãŸã‚‰
     if (wallHitRecoveryTimer > 0.0f)
     {
         RecoverFromWallHit(delta);
         return;
     }
 
-    //ƒXƒ^ƒbƒN‚µ‚Ä‚¢‚½‚ç
+    //ã‚¹ã‚¿ãƒƒã‚¯ã—ã¦ã„ãŸã‚‰
     if (isStuck)
     {
         RecoverFromStuck(delta);
         return;
     }
 
-    // –Ú•W’n“_‚ğæ“¾
-    VECTOR target = GetCurrentTarget();
+    // å£å›é¿ãƒ¢ãƒ¼ãƒ‰ã®æ›´æ–°
+    UpdateWallAvoidance(delta);
 
-    // ƒXƒeƒAƒŠƒ“ƒO
+    // ç›®æ¨™åœ°ç‚¹ã‚’å–å¾—
+    VECTOR target;
+    if (isAvoidingWall)// å£å›é¿ä¸­ã¯å›é¿ç›®æ¨™ã‚’ä½¿ã†
+    {
+        target = avoidanceTarget;
+    }
+    else
+    {
+        target = GetCurrentTarget();
+
+        // å‰æ–¹ã«å£ãŒã‚ã‚‹ã‹æ¤œå‡º
+        if (DetectWallAhead(50.0f))
+        {
+            isAvoidingWall = true;
+            avoidanceTimer = 0.5f;  // 0.5ç§’é–“å›é¿è¡Œå‹•
+
+            // ãƒ©ãƒ³ãƒ€ãƒ ã«å·¦å³ã©ã¡ã‚‰ã‹ã«å›é¿
+            wallAvoidDirection = (rand() % 2 == 0) ? 1 : -1;
+            avoidanceTarget = CalculateAvoidanceTarget();
+
+            //printfDx("Enemy: å£æ¤œå‡º! å›é¿é–‹å§‹\n");
+        }
+    }
+
+    // ç›®æ¨™ã¸ã®è§’åº¦å·®ã‚’è¨ˆç®—
+    float targetAngle = GetAngleToTarget(target);
+    float angleDiff = targetAngle - angle;
+
+    // è§’åº¦ã‚’-180~180ã«æ­£è¦åŒ–
+    while (angleDiff > 180.0f) angleDiff -= 360.0f;
+    while (angleDiff < -180.0f) angleDiff += 360.0f;
+
+    // ãƒ‰ãƒªãƒ•ãƒˆåˆ¤å®šã‚’æ›´æ–°
+    UpdateDriftDecision(angleDiff, delta);
+
+    // ãƒ‰ãƒªãƒ•ãƒˆå‡¦ç†
+    HandleDrift(delta);
+
+    // ã‚¹ãƒ†ã‚¢ãƒªãƒ³ã‚°
     SteerToTarget(target, delta);
 
-    // ƒAƒNƒZƒ‹§Œä
+    // ã‚¢ã‚¯ã‚»ãƒ«åˆ¶å¾¡
     HandleAcceleration(delta);
 }
 
-void EnemyCPU::RecoverFromStuck(float delta)
-{
-    // ƒoƒbƒN&ƒ^[ƒ“
-    moveSpeed = -SpdMax * 0.3f;
-    angle += ROTATION_SPEED * delta;
-
-    stuckTimer -= delta * 2.0f; // ‰ñ•œ
-
-    if (stuckTimer <= 0.0f)
-    {
-        isStuck = false;
-        stuckTimer = 0.0f;
-        consecutiveWallHits = 0;
-    }
-}
-
-void EnemyCPU::OnWallHit()
-{
-    // ƒN[ƒ‹ƒ_ƒEƒ“’†‚Í–³‹(˜A‘±Õ“Ë–h~)
-    if (wallHitCooldown > 0.0f) {
-        return;
-    }
-
-    consecutiveWallHits += 1.0f;
-    wallHitCooldown = 0.8f;  // 0.8•b‚ÌƒN[ƒ‹ƒ_ƒEƒ“
-    lastWallHitTime = 0.0f;  // ƒŠƒZƒbƒg
-
-    // ˜A‘±Õ“ËƒŒƒxƒ‹‚É‰‚¶‚½‘Î‰
-    if (consecutiveWallHits >= 4.0f) {
-        // ƒŒƒxƒ‹3: ‚©‚È‚èŠëŒ¯ - ’·‚ß‚ÌƒoƒbƒN
-        wallHitRecoveryTimer = 2.5f;
-        moveSpeed = -SpdMax * 0.4f;
-        //printfDx("Enemy: d“x‚Ì˜A‘±Õ“Ë! ’·‚ß‚ÌƒoƒbƒN (count: %.0f)\n", consecutiveWallHits);
-    }
-    else if (consecutiveWallHits >= 2.0f) {
-        // ƒŒƒxƒ‹2: ŠëŒ¯ - ƒoƒbƒN
-        wallHitRecoveryTimer = 1.5f;
-        moveSpeed = -SpdMax * 0.3f;
-        //printfDx("Enemy: ˜A‘±Õ“ËŒŸo! ƒoƒbƒNŠJn (count: %.0f)\n", consecutiveWallHits);
-    }
-    else {
-        // ƒŒƒxƒ‹1: ’Êí‚ÌÕ“Ë - ’â~‚µ‚ÄŒü‚«’¼‚µ
-        wallHitRecoveryTimer = 1.0f;
-        moveSpeed = 0.0f;
-        //printfDx("Enemy: •ÇÕ“Ë (count: %.0f)\n", consecutiveWallHits);
-    }
-}
 
 void EnemyCPU::RecoverFromWallHit(float delta)
 {
-    // –Ú•W‚ÉŒü‚«’¼‚é
+    // ç›®æ¨™ã«å‘ãç›´ã‚‹
     VECTOR target = GetCurrentTarget();
     float targetAngle = GetAngleToTarget(target);
     float angleDiff = targetAngle - angle;
 
-    // Šp“x‚ğ-180~180‚É³‹K‰»
+    // è§’åº¦ã‚’-180~180ã«æ­£è¦åŒ–
     while (angleDiff > 180.0f) angleDiff -= 360.0f;
     while (angleDiff < -180.0f) angleDiff += 360.0f;
 
-    // ˜A‘±Õ“ËƒŒƒxƒ‹‚É‰‚¶‚½‰ñ“]‘¬“x
+    // é€£ç¶šè¡çªãƒ¬ãƒ™ãƒ«ã«å¿œã˜ãŸå›è»¢é€Ÿåº¦
     float turnSpeed = ROTATION_SPEED * delta;
     if (consecutiveWallHits >= 4.0f) {
-        turnSpeed *= 2.5f;  // ‚æ‚è‘¬‚­‰ñ“]
+        turnSpeed *= 2.5f;  // ã‚ˆã‚Šé€Ÿãå›è»¢
     }
     else if (consecutiveWallHits >= 2.0f) {
         turnSpeed *= 1.8f;
     }
 
-    // Œü‚«’¼‚è’†‚Í‰ñ“]‚Ì‚İ
+    // å‘ãç›´ã‚Šä¸­ã¯å›è»¢ã®ã¿
     if (fabsf(angleDiff) > 20.0f)
     {
         float steerAmount = angleDiff > 0 ? ROTATION_SPEED * delta : -ROTATION_SPEED * delta;
         angle += steerAmount;
-        // ˜A‘±Õ“Ë‚ª‘½‚¢ê‡‚ÍƒoƒbƒNŒp‘±
+        // é€£ç¶šè¡çªãŒå¤šã„å ´åˆã¯ãƒãƒƒã‚¯ç¶™ç¶š
         if (consecutiveWallHits >= 2.0f) {
             float backSpeed = -SpdMax * 0.3f;
             if (consecutiveWallHits >= 4.0f) {
@@ -315,18 +343,114 @@ void EnemyCPU::RecoverFromWallHit(float delta)
     }
     else
     {
-        // Œü‚«’¼‚Á‚½‚ç‘OiÄŠJ
-        moveSpeed += SpdUp;  // ‚ä‚Á‚­‚è‰Á‘¬
+        // å‘ãç›´ã£ãŸã‚‰å‰é€²å†é–‹
+        moveSpeed += SpdUp;  // ã‚†ã£ãã‚ŠåŠ é€Ÿ
         if (moveSpeed > SpdMax) moveSpeed = SpdMax;
     }
 }
 
+void EnemyCPU::RecoverFromStuck(float delta)
+{
+    // ãƒãƒƒã‚¯&ã‚¿ãƒ¼ãƒ³
+    moveSpeed = -SpdMax * 0.3f;
+    angle += ROTATION_SPEED * delta;
+
+    stuckTimer -= delta * 2.0f; // å›å¾©
+
+    if (stuckTimer <= 0.0f)
+    {
+        isStuck = false;
+        stuckTimer = 0.0f;
+        consecutiveWallHits = 0;
+    }
+}
+
+bool EnemyCPU::DetectWallAhead(float checkDistance)
+{
+    // å£å›é¿ãƒ¢ãƒ¼ãƒ‰ä¸­ã‚„å›å¾©ä¸­ã¯æ¤œå‡ºã—ãªã„
+    if (isAvoidingWall || wallHitRecoveryTimer > 0.0f || isStuck)
+    {
+        return false;
+    }
+
+    // å‰æ–¹å‘ã®ãƒ™ã‚¯ãƒˆãƒ«ã‚’è¨ˆç®—
+    float rad = angle * DX_PI_F / 180.0f;
+    VECTOR forward = VGet(sinf(rad), 0.0f, cosf(rad));
+
+    // è¤‡æ•°ã®æ¤œå‡ºç‚¹ã§ãƒã‚§ãƒƒã‚¯ï¼ˆä¸­å¤®ã€å·¦ã€å³ï¼‰
+    const int CHECK_POINTS = 3;
+    float checkAngles[CHECK_POINTS] = { 0.0f, -15.0f, 15.0f };  // ä¸­å¤®ã€å·¦15åº¦ã€å³15åº¦
+
+    for (int i = 0; i < CHECK_POINTS; i++)
+    {
+        float checkRad = (angle + checkAngles[i]) * DX_PI_F / 180.0f;
+        VECTOR checkDir = VGet(sinf(checkRad), 0.0f, cosf(checkRad));
+
+        VECTOR checkStart = VAdd(pos, VGet(0.0f, 2.0f, 0.0f));
+        VECTOR checkEnd = VAdd(checkStart, VScale(checkDir, checkDistance));
+
+        // ã‚¹ãƒ†ãƒ¼ã‚¸ã¨ã®ç·šåˆ†åˆ¤å®š
+        int colModel = stage.GetCheckColModel();
+        if (colModel != -1)
+        {
+            MV1_COLL_RESULT_POLY HitPoly = MV1CollCheck_Line(
+                colModel, -1, checkStart, checkEnd
+            );
+
+            if (HitPoly.HitFlag == 1)
+            {
+                // å£æ¤œå‡º!
+                // ãŸã ã—åœ°é¢ã¯é™¤å¤–
+                if (fabsf(HitPoly.Normal.y) < 0.7f)  // æ³•ç·šã®Yæˆåˆ†ãŒå°ã•ã„ = å£
+                {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+void EnemyCPU::UpdateWallAvoidance(float delta)
+{
+    if (!isAvoidingWall) return;
+
+    avoidanceTimer -= delta;
+
+    // å›é¿æ™‚é–“ãŒçµ‚äº†ã€ã¾ãŸã¯ç›®æ¨™ã«è¿‘ã¥ã„ãŸ
+    float distToAvoidTarget = VSize(VSub(avoidanceTarget, pos));
+
+    if (avoidanceTimer <= 0.0f || distToAvoidTarget < 10.0f)
+    {
+        isAvoidingWall = false;
+        avoidanceTimer = 0.0f;
+        //printfDx("Enemy: å£å›é¿çµ‚äº†\n");
+    }
+}
+
+VECTOR EnemyCPU::CalculateAvoidanceTarget()
+{
+    // 60åº¦ï½120åº¦ã§ãƒ©ãƒ³ãƒ€ãƒ ã«å›é¿
+    float avoidAngleOffset = 60.0f + ((float)rand() / RAND_MAX) * 60.0f;  // 60~120åº¦
+    float avoidAngle = angle + (avoidAngleOffset * wallAvoidDirection);
+    float rad = avoidAngle * DX_PI_F / 180.0f;
+
+    // å›é¿è·é›¢ï¼ˆã‚¹ã‚­ãƒ«ã«ã‚ˆã£ã¦å¤‰ã‚ã‚‹ï¼‰
+    float avoidDistance = 15.0f + (10.0f * corneringSkill);
+
+    VECTOR avoidDir = VGet(sinf(rad), 0.0f, cosf(rad));
+    VECTOR target = VAdd(pos, VScale(avoidDir, avoidDistance));
+
+    return target;
+}
+
 VECTOR EnemyCPU::GetCurrentTarget() const
 {
-    // HP’á‰º‚ÍƒXƒNƒ‰ƒbƒv—Dæ
+    // HPä½ä¸‹æ™‚ã¯ã‚¹ã‚¯ãƒ©ãƒƒãƒ—å„ªå…ˆ
     if (ShouldSearchScrap() && hasNearestScrap)
     {
-        //«Ši‚É‚æ‚é—Dæ“x”»’è
+        //æ€§æ ¼ã«ã‚ˆã‚‹å„ªå…ˆåº¦åˆ¤å®š
         float randValue = (float)rand() / RAND_MAX;
         if(randValue < scrapPriority)
         {
@@ -334,13 +458,13 @@ VECTOR EnemyCPU::GetCurrentTarget() const
         }
     }
 
-    // ’Êí‚ÍƒEƒFƒCƒ|ƒCƒ“ƒg
+    // é€šå¸¸ã¯ã‚¦ã‚§ã‚¤ãƒã‚¤ãƒ³ãƒˆ
     if (!waypoints.empty())
     {
         return waypoints[currentWaypointIndex];
     }
 
-    // ƒEƒFƒCƒ|ƒCƒ“ƒg‚ª‚È‚¢ê‡‚Í‘O•û
+    // ã‚¦ã‚§ã‚¤ãƒã‚¤ãƒ³ãƒˆãŒãªã„å ´åˆã¯å‰æ–¹
     float rad = angle * DX_PI_F / 180.0f;
     return VAdd(pos, VGet(sinf(rad) * 10.0f, 0.0f, cosf(rad) * 10.0f));
 }
@@ -350,22 +474,173 @@ bool EnemyCPU::ShouldSearchScrap() const
     return Hp < LOW_HP_THRESHOLD;
 }
 
+void EnemyCPU::UpdateDriftDecision(float angleDiff, float delta)
+{
+	float absAngleDiff = fabsf(angleDiff);
+
+	// ãƒ‰ãƒªãƒ•ãƒˆé–‹å§‹åˆ¤å®š
+    if (ShouldStartDrift(absAngleDiff)) 
+    {
+		shouldDrift = true;
+    }
+    else
+    {
+        // ãƒ‰ãƒªãƒ•ãƒˆçµ‚äº†æ¡ä»¶
+        if (absAngleDiff < 15.0f || fabsf(moveSpeed) < 20.0f)
+        {
+            shouldDrift = false;
+        }
+    }
+	lastAngleDiff = absAngleDiff;
+}
+
+bool EnemyCPU::ShouldStartDrift(float absAngleDiff) const
+{
+    float threshold;
+
+    if (driftSkill > 0.8f) {
+        // ä¸Šæ‰‹: 30åº¦ä»¥ä¸Šã§ãƒ‰ãƒªãƒ•ãƒˆ
+        threshold = 30.0f;
+    }
+    else if (driftSkill > 0.5f) {
+        // æ™®é€š: 45åº¦ä»¥ä¸Šã§ãƒ‰ãƒªãƒ•ãƒˆ
+        threshold = 45.0f;
+    }
+    else {
+        // ä¸‹æ‰‹: 60åº¦ä»¥ä¸Šã§ãƒ‰ãƒªãƒ•ãƒˆ
+        threshold = 60.0f;
+    }
+
+    // é€Ÿåº¦ã‚‚è€ƒæ…®: é€Ÿã„ã»ã©ãƒ‰ãƒªãƒ•ãƒˆã—ã‚„ã™ã„
+    float speedRatio = fabsf(moveSpeed) / SpdMax;
+    threshold -= speedRatio * 10.0f;  // æœ€å¤§10åº¦å¼•ãä¸‹ã’
+
+    // å£å›é¿ãƒ¢ãƒ¼ãƒ‰ä¸­ã¯ãƒ‰ãƒªãƒ•ãƒˆã—ã‚„ã™ã
+    if (isAvoidingWall) {
+        threshold *= 0.8f;  // 20%å¼•ãä¸‹ã’
+    }
+
+    return absAngleDiff > threshold;
+}
+
+void EnemyCPU::HandleDrift(float delta)
+{
+    if (shouldDrift)
+    {
+        if (!isDrifting) {
+            isDrifting = true;
+            driftAngle = 0.0f;
+            driftFrameCount = 0;
+        }
+
+        driftFrameCount++;
+
+        // ç›®æ¨™ã¸ã®è§’åº¦å·®ã«å¿œã˜ã¦ãƒ‰ãƒªãƒ•ãƒˆè§’åº¦ã‚’èª¿æ•´
+        VECTOR target = GetCurrentTarget();
+        float targetAngle = GetAngleToTarget(target);
+        float angleDiff = targetAngle - angle;
+
+        // æ­£è¦åŒ–
+        while (angleDiff > 180.0f) angleDiff -= 360.0f;
+        while (angleDiff < -180.0f) angleDiff += 360.0f;
+
+        // ã‚¹ã‚­ãƒ«ã«å¿œã˜ãŸãƒ‰ãƒªãƒ•ãƒˆè§’åº¦ã®è“„ç©é€Ÿåº¦(ã‚¹ã‚­ãƒ«å·®ã«ã‚ˆã£ã¦æ›²ãŒã‚Šã‚„ã™ã„)
+        float driftSpeed = 240.0f * driftSkill;
+
+		// æ€¥ã‚«ãƒ¼ãƒ–æ™‚ã®è£œæ­£
+        float absAngleDiff = fabsf(angleDiff);
+        if (absAngleDiff > 45.0f) {
+            driftSpeed *= 1.3f;  // æ€¥ã‚«ãƒ¼ãƒ–ã§30%é€Ÿã
+        }
+
+        // ã‚¨ãƒ©ãƒ¼çŠ¶æ…‹ãªã‚‰ãƒ‰ãƒªãƒ•ãƒˆã‚‚ä¸å®‰å®š
+        if (isInError) {
+            driftSpeed *= 0.5f;
+        }
+
+        // è§’åº¦å·®ã®æ–¹å‘ã«å¿œã˜ã¦ãƒ‰ãƒªãƒ•ãƒˆ
+        if (angleDiff < 0) {
+            driftAngle -= driftSpeed * delta;
+        }
+        else {
+            driftAngle += driftSpeed * delta;
+        }
+
+        // ã‚¹ã‚­ãƒ«ã«å¿œã˜ãŸæœ€å¤§ãƒ‰ãƒªãƒ•ãƒˆè§’åº¦
+        float maxDrift = 30.0f + (30.0f * driftSkill);  // 30~50åº¦
+
+        if (driftAngle < -maxDrift) driftAngle = -maxDrift;
+        if (driftAngle > maxDrift) driftAngle = maxDrift;
+
+        // æ¨ªæ–¹å‘ã®é€Ÿåº¦
+        lateralVelocity = driftAngle * 1.0f * driftSkill;  // ã‚¹ã‚­ãƒ«ã§æ¨ªæ»‘ã‚Šé‡ã‚‚å¤‰ã‚ã‚‹
+    }
+    else
+    {
+        if (isDrifting) {
+            isDrifting = false;
+            driftFrameCount = 0;
+        }
+
+        // ãƒ‰ãƒªãƒ•ãƒˆè§’åº¦ã‚’æˆ»ã™
+        driftAngle *= 0.90f;
+        lateralVelocity *= 0.90f;
+
+        if (fabsf(driftAngle) < 0.1f) {
+            driftAngle = 0.0f;
+            lateralVelocity = 0.0f;
+        }
+    }
+}
+
 void EnemyCPU::SteerToTarget(VECTOR targetPos, float delta)
 {
     float targetAngle = GetAngleToTarget(targetPos);
     float angleDiff = targetAngle - angle;
 
-    // Šp“x‚ğ-180~180‚É³‹K‰»
+    // è§’åº¦ã‚’-180~180ã«æ­£è¦åŒ–
     while (angleDiff > 180.0f) angleDiff -= 360.0f;
     while (angleDiff < -180.0f) angleDiff += 360.0f;
 
-    // ƒR[ƒiƒŠƒ“ƒOƒXƒLƒ‹‚ğ”½‰f
+    // åŸºæœ¬æ—‹å›é€Ÿåº¦ï¼ˆPlayerã¨åŒã˜ãé€šå¸¸ã¯é…ãï¼‰
+    float baseRotSpeed = 180.0f;  // åŸºæœ¬æ—‹å›é€Ÿåº¦
+    float rotSpeed;
+
+    // é€Ÿåº¦æ¯”ç‡
+    float speedRatio = fabsf(moveSpeed) / SpdMax;
+
+    if (isDrifting)
+    {
+        // ãƒ‰ãƒªãƒ•ãƒˆä¸­: é€Ÿãæ›²ãŒã‚Œã‚‹ï¼ˆã‚¹ã‚­ãƒ«è£œæ­£ã‚ã‚Šï¼‰
+        // åŸºæœ¬é€Ÿåº¦ Ã— å€ç‡ Ã— é€Ÿåº¦è£œæ­£ Ã— ã‚¹ã‚­ãƒ«è£œæ­£
+        rotSpeed = baseRotSpeed * 2.0f * (0.5f + speedRatio) * driftSkill;
+    }
+    else
+    {
+        // é€šå¸¸æ—‹å›: é€Ÿåº¦ãŒé€Ÿã„ã¨æ›²ãŒã‚Šã«ãã„
+        rotSpeed = baseRotSpeed * (1.5f - speedRatio);
+
+        // corneringSkillã§è£œæ­£
+        rotSpeed *= (0.8f + corneringSkill * 0.4f);
+    }
+
+	// æ€¥ã‚«ãƒ¼ãƒ–æ™‚ã®è£œæ­£
+    float absAngleDiff = fabsf(angleDiff);
+    if (absAngleDiff > 45.0f)
+    {
+        // æ€¥ã‚«ãƒ¼ãƒ–è£œæ­£: 45åº¦ä»¥ä¸Šã§æœ€å¤§1.5å€
+        float urgencyBoost = 1.0f + ((absAngleDiff - 45.0f) / 120.0f);  // 1.0~1.5
+        if (urgencyBoost > 1.5f) urgencyBoost = 1.5f;
+        rotSpeed *= urgencyBoost;
+    }
+
+    // ã‚³ãƒ¼ãƒŠãƒªãƒ³ã‚°ã‚¹ã‚­ãƒ«ã‚’åæ˜ 
     float steerAmount = angleDiff * corneringSkill;
 
-    // ƒGƒ‰[ó‘Ô‚È‚çƒnƒ“ƒhƒ‹‘€ì‚ª‚¨‚©‚µ‚­‚È‚é
+    // ã‚¨ãƒ©ãƒ¼çŠ¶æ…‹ãªã‚‰ãƒãƒ³ãƒ‰ãƒ«æ“ä½œãŒãŠã‹ã—ããªã‚‹
     if (isInError)
     {
-        // ƒ‰ƒ“ƒ_ƒ€‚É¶‰E‚ÉU‚ê‚é
+        // ãƒ©ãƒ³ãƒ€ãƒ ã«å·¦å³ã«æŒ¯ã‚Œã‚‹
         float errorSteer = ((float)rand() / RAND_MAX - 0.5f) * 90.0f;
         steerAmount += errorSteer;
     }
@@ -384,7 +659,7 @@ float EnemyCPU::GetAngleToTarget(VECTOR target) const
 
 void EnemyCPU::UpdateErrorBehavior(float delta)
 {
-    // ƒGƒ‰[ó‘Ô’†‚Ìˆ—
+    // ã‚¨ãƒ©ãƒ¼çŠ¶æ…‹ä¸­ã®å‡¦ç†
     if (isInError)
     {
         errorTimer -= delta;
@@ -395,7 +670,7 @@ void EnemyCPU::UpdateErrorBehavior(float delta)
         return;
     }
 
-    // ’èŠú“I‚ÉƒGƒ‰[”»’è
+    // å®šæœŸçš„ã«ã‚¨ãƒ©ãƒ¼åˆ¤å®š
     errorTimer += delta;
     if (errorTimer >= ERROR_CHECK_INTERVAL)
     {
@@ -408,13 +683,13 @@ void EnemyCPU::TriggerRandomError()
 {
     float randValue = (float)rand() / RAND_MAX;
 
-    // “ïˆÕ“x‚É‚æ‚Á‚ÄƒGƒ‰[‹““®‚Ì‚µ‚â‚·‚³‚ğ•Ï‚¦‚é
+    // é›£æ˜“åº¦ã«ã‚ˆã£ã¦ã‚¨ãƒ©ãƒ¼æŒ™å‹•ã®ã—ã‚„ã™ã•ã‚’å¤‰ãˆã‚‹
     if (randValue < errorRate)
     {
         isInError = true;
         errorTimer = errorDuration;
 
-       // printfDx("Enemy Error! (%.1f•b)\n", errorDuration);
+       // printfDx("Enemy Error! (%.1fç§’)\n", errorDuration);
     }
 }
 
@@ -422,14 +697,14 @@ void EnemyCPU::HandleAcceleration(float delta)
 {
     float targetSpeed = CalculateTargetSpeed();
 
-    //ƒGƒ‰[ó‘Ô
+    //ã‚¨ãƒ©ãƒ¼çŠ¶æ…‹
     if (isInError)
     {
-        // ƒAƒNƒZƒ‹‚ÆƒuƒŒ[ƒL‚ğŠÔˆá‚¦‚é
+        // ã‚¢ã‚¯ã‚»ãƒ«ã¨ãƒ–ãƒ¬ãƒ¼ã‚­ã‚’é–“é•ãˆã‚‹
         targetSpeed *= 0.5f + ((float)rand() / RAND_MAX) * 0.5f;
     }
 
-    // –Ú•W‘¬“x‚ÉŒü‚¯‚Ä‰ÁŒ¸‘¬
+    // ç›®æ¨™é€Ÿåº¦ã«å‘ã‘ã¦åŠ æ¸›é€Ÿ
     if (moveSpeed < targetSpeed)
     {
         moveSpeed += SpdUp;
@@ -448,46 +723,107 @@ float EnemyCPU::CalculateTargetSpeed() const
     float angleToTarget = GetAngleToTarget(target);
     float angleDiff = fabsf(angleToTarget - angle);
 
-    // Šp“x‚ğ0~180‚É³‹K‰»
+    // è§’åº¦ã‚’0~180ã«æ­£è¦åŒ–
     while (angleDiff > 180.0f) angleDiff -= 360.0f;
     angleDiff = fabsf(angleDiff);
 
-    // í‚ÉÅ‚‘¬‚ğ–Úw‚·(aggressiveness•â³‚ğíœ)
+    // å¸¸ã«æœ€é«˜é€Ÿã‚’ç›®æŒ‡ã™(aggressivenessè£œæ­£ã‚’å‰Šé™¤)
     float baseSpeed = SpdMax;
 
-    // ƒR[ƒiƒŠƒ“ƒOƒXƒLƒ‹‚É‚æ‚Á‚ÄŒ¸‘¬“x‚ğ’²®
+    // ã‚³ãƒ¼ãƒŠãƒªãƒ³ã‚°ã‚¹ã‚­ãƒ«ã«ã‚ˆã£ã¦æ¸›é€Ÿåº¦ã‚’èª¿æ•´
     float skillFactor = corneringSkill;
 
-    // Šp“x·‚É‚æ‚éŒ¸‘¬(ƒXƒLƒ‹‚Å•â³)
-    if (angleDiff > 90.0f)
+    // ãƒ‰ãƒªãƒ•ãƒˆä¸­ã¯æ¸›é€ŸãŒå°‘ãªã„
+    if (isDrifting)
     {
-        // ‘åƒJ[ƒu
-        return baseSpeed * (0.6f + 0.25f * skillFactor);
+        // ãƒ‰ãƒªãƒ•ãƒˆä¸­ã¯é€Ÿåº¦ã‚’ä¿ã¦ã‚‹
+        if (angleDiff > 90.0f) {
+            return baseSpeed * (0.75f + 0.2f * driftSkill);
+        }
+        else if (angleDiff > 45.0f) {
+            return baseSpeed * (0.9f + 0.1f * driftSkill);
+        }
+        return baseSpeed;  // ã»ã¼æœ€é«˜é€Ÿç¶­æŒ
     }
-    else if (angleDiff > 45.0f)
+    else
     {
-        // ’†ƒJ[ƒu
-        return baseSpeed * (0.8f + 0.15f * skillFactor);
+        // é€šå¸¸èµ°è¡Œæ™‚ã®æ¸›é€Ÿ
+        if (angleDiff > 90.0f) {
+            return baseSpeed * (0.6f + 0.25f * skillFactor);
+        }
+        else if (angleDiff > 45.0f) {
+            return baseSpeed * (0.8f + 0.15f * skillFactor);
+        }
+        return baseSpeed;
+    }
+}
+
+void EnemyCPU::OnWallHit()
+{
+    // ã‚¯ãƒ¼ãƒ«ãƒ€ã‚¦ãƒ³ä¸­ã¯ç„¡è¦–(é€£ç¶šè¡çªé˜²æ­¢)
+    if (wallHitCooldown > 0.0f) {
+        return;
     }
 
-    // ’¼ü‚â‚ä‚é‚¢ƒJ[ƒu: í‚ÉÅ‚‘¬
-    return baseSpeed;
+    consecutiveWallHits += 1.0f;
+    wallHitCooldown = 0.8f;  // 0.8ç§’ã®ã‚¯ãƒ¼ãƒ«ãƒ€ã‚¦ãƒ³
+    lastWallHitTime = 0.0f;  // ãƒªã‚»ãƒƒãƒˆ
+
+    // å£å›é¿ãƒ¢ãƒ¼ãƒ‰ã‚’å¼·åˆ¶é–‹å§‹
+    if (!isAvoidingWall)
+    {
+        isAvoidingWall = true;
+        avoidanceTimer = 3.0f;  // é•·ã‚ã«å›é¿
+
+        // é€£ç¶šè¡çªãŒå¤šã„å ´åˆã¯é€†æ–¹å‘ã«å›é¿
+        if (consecutiveWallHits >= 2.0f)
+        {
+            wallAvoidDirection *= -1;  // æ–¹å‘ã‚’åè»¢
+        }
+        else
+        {
+            wallAvoidDirection = (rand() % 2 == 0) ? 1 : -1;
+        }
+
+        avoidanceTarget = CalculateAvoidanceTarget();
+        //printfDx("Enemy: å£è¡çªã§å›é¿ãƒ¢ãƒ¼ãƒ‰å¼·åˆ¶é–‹å§‹ (count: %.0f)\n", consecutiveWallHits);
+    }
+
+    // é€£ç¶šè¡çªãƒ¬ãƒ™ãƒ«ã«å¿œã˜ãŸå¯¾å¿œ
+    if (consecutiveWallHits >= 4.0f) {
+        // ãƒ¬ãƒ™ãƒ«3: ã‹ãªã‚Šå±é™º - é•·ã‚ã®ãƒãƒƒã‚¯
+        wallHitRecoveryTimer = 2.5f;
+        moveSpeed = -SpdMax * 0.4f;
+        //printfDx("Enemy: é‡åº¦ã®é€£ç¶šè¡çª! é•·ã‚ã®ãƒãƒƒã‚¯ (count: %.0f)\n", consecutiveWallHits);
+    }
+    else if (consecutiveWallHits >= 2.0f) {
+        // ãƒ¬ãƒ™ãƒ«2: å±é™º - ãƒãƒƒã‚¯
+        wallHitRecoveryTimer = 1.5f;
+        moveSpeed = -SpdMax * 0.3f;
+        //printfDx("Enemy: é€£ç¶šè¡çªæ¤œå‡º! ãƒãƒƒã‚¯é–‹å§‹ (count: %.0f)\n", consecutiveWallHits);
+    }
+    else {
+        // ãƒ¬ãƒ™ãƒ«1: é€šå¸¸ã®è¡çª - åœæ­¢ã—ã¦å‘ãç›´ã—
+        wallHitRecoveryTimer = 1.0f;
+        moveSpeed = 0.0f;
+        //printfDx("Enemy: å£è¡çª (count: %.0f)\n", consecutiveWallHits);
+    }
 }
 
 void EnemyCPU::CheckStuckState(float delta)
 {
     float movedDistance = VSize(VSub(pos, lastPos));
 
-    // ˜A‘±Õ“Ë‚ª”ñí‚É‘½‚¢ê‡‚Í‹­§ƒXƒ^ƒbƒN
+    // é€£ç¶šè¡çªãŒéå¸¸ã«å¤šã„å ´åˆã¯å¼·åˆ¶ã‚¹ã‚¿ãƒƒã‚¯
     if (consecutiveWallHits >= 6.0f) {
         isStuck = true;
         stuckTimer = STUCK_TIME;
-        consecutiveWallHits = 0;  // ƒŠƒZƒbƒg
-        //printfDx("Enemy: ˜A‘±Õ“Ë‘½”‚Å‹­§ƒXƒ^ƒbƒN”»’è\n");
+        consecutiveWallHits = 0;  // ãƒªã‚»ãƒƒãƒˆ
+        //printfDx("Enemy: é€£ç¶šè¡çªå¤šæ•°ã§å¼·åˆ¶ã‚¹ã‚¿ãƒƒã‚¯åˆ¤å®š\n");
     }
 
-    //“®‚¢‚½‹——£‚ªˆê’èŠÔ‚Éˆê’è‹——£“®‚¢‚Ä‚¢‚È‚¯‚ê‚Î
-    if (movedDistance < STUCK_THRESHOLD * delta && fabsf(moveSpeed) > 1.0f)
+    //å‹•ã„ãŸè·é›¢ãŒä¸€å®šæ™‚é–“ã«ä¸€å®šè·é›¢å‹•ã„ã¦ã„ãªã‘ã‚Œã°
+    if (movedDistance < STUCK_THRESHOLD * delta)
     {
         stuckTimer += delta;
 
@@ -499,7 +835,7 @@ void EnemyCPU::CheckStuckState(float delta)
     else
     {
         if (stuckTimer > 0.0f) {
-            stuckTimer -= delta * 0.5f;  // ™X‚ÉŒ¸‚ç‚·
+            stuckTimer -= delta * 0.5f;  // å¾ã€…ã«æ¸›ã‚‰ã™
         }
         if (movedDistance > STUCK_THRESHOLD * delta * 2.0f) {
             isStuck = false;
@@ -529,4 +865,28 @@ void EnemyCPU::ClearNearestScrap()
 void EnemyCPU::Draw()
 {
     CarBase::Draw();
+
+//#ifdef _DEBUG
+//    if (isAvoidingWall)
+//    {
+//        // å›é¿ç›®æ¨™ã‚’èµ¤ã„ç·šã§è¡¨ç¤º
+//        VECTOR lineStart = VAdd(pos, VGet(0.0f, 5.0f, 0.0f));
+//        VECTOR lineEnd = VAdd(avoidanceTarget, VGet(0.0f, 5.0f, 0.0f));
+//        DrawLine3D(lineStart, lineEnd, GetColor(255, 0, 0));
+//
+//        // å›é¿ç›®æ¨™ã«çƒã‚’æç”»
+//        DrawSphere3D(avoidanceTarget, 2.0f, 8, GetColor(255, 0, 0), GetColor(255, 0, 0), TRUE);
+//    }
+//    else
+//    {
+//        // é€šå¸¸ã®ç›®æ¨™ï¼ˆã‚¦ã‚§ã‚¤ãƒã‚¤ãƒ³ãƒˆï¼‰ã‚’é’ã„ç·šã§è¡¨ç¤º
+//        if (!waypoints.empty())
+//        {
+//            VECTOR target = waypoints[currentWaypointIndex];
+//            VECTOR lineStart = VAdd(pos, VGet(0.0f, 5.0f, 0.0f));
+//            VECTOR lineEnd = VAdd(target, VGet(0.0f, 5.0f, 0.0f));
+//            DrawLine3D(lineStart, lineEnd, GetColor(0, 0, 255));
+//        }
+//    }
+//#endif
 }

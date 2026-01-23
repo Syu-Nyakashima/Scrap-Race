@@ -19,10 +19,13 @@ void ItemManager::Initialize()
 	scrapSpawnInterval = NORMAL_SCRAP_SPAWN_INTERVAL;
 	maxScraps = MAX_SCRAPS;
 
-	//normalScrapModel = MV1LoadModel("Data/Model/NormalScrap.mv1");
-	//if (normalScrapModel == -1) printfDx("normalScrapモデル読み込み失敗！\n");
-	//rareScrapModel = MV1LoadModel("Data/Model/RareScrap.mv1");
-	//if (rareScrapModel == -1) printfDx("rareScrapモデル読み込み失敗！\n");
+	normalScrapModel = MV1LoadModel("Data/Model/NormalScrap.mv1");
+	if (normalScrapModel == -1) printfDx("normalScrapモデル読み込み失敗！\n");
+	MV1SetScale(normalScrapModel, VGet(0.05f, 0.05f, 0.05f));
+
+	rareScrapModel = MV1LoadModel("Data/Model/RareScrap.mv1");
+	if (rareScrapModel == -1) printfDx("rareScrapモデル読み込み失敗！\n");
+	MV1SetScale(rareScrapModel, VGet(0.05f, 0.05f, 0.05f));
 }
 
 void ItemManager::Terminate()
@@ -56,9 +59,19 @@ void ItemManager::Update(float deltaTime, int checkColModel, std::vector<CarBase
 
 	//スクラップがある間更新
 	for (auto& scrap : Scraps) {
+		for (auto* car : cars) {
+			if (car != nullptr && car->IsAlive()) {
+				scrap.ApplyMagnetism(car->GetPosition(), deltaTime);
+			}
+		}
 		scrap.Update(deltaTime, checkColModel);
 	}
 	for(auto& rareScrap : RareScraps) {
+		for (auto* car : cars) {
+			if (car != nullptr && car->IsAlive()) {
+				rareScrap.ApplyMagnetism(car->GetPosition(), deltaTime);
+			}
+		}
 		rareScrap.Update(deltaTime, checkColModel);
 	}
 
@@ -239,6 +252,7 @@ void ItemManager::SpawnRareScrap(const VECTOR& playerPos, float playerAngle, int
 			newScrap.SetInvincibleTime(1.0f);
 
 			spawned++;
+			//printfDx("Rare Scrap生成 成功 (%d/%d)\n", spawned, count);
 		}
 	}
 }

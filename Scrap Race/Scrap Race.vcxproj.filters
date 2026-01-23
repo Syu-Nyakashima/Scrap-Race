@@ -112,7 +112,13 @@
       <Filter>ソース ファイル\RaceCar\Enemy</Filter>
     </ClCompile>
     <ClCompile Include="Src\Result.cpp">
+      <Filter>ソース ファイル\Scene\Result</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\MiniMap.cpp">
       <Filter>ソース ファイル\Scene\Play</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\TitleScene.cpp">
+      <Filter>ソース ファイル\Scene\Title</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -174,7 +180,13 @@
       <Filter>ソース ファイル\RaceCar\Enemy</Filter>
     </ClInclude>
     <ClInclude Include="Src\Scrap.h">
-      <Filter>ソース ファイル\Scene\Result</Filter>
+      <Filter>ソース ファイル\Scene\Play</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\MiniMap.h">
+      <Filter>ソース ファイル\Scene\Play</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\TitleScene.h">
+      <Filter>ソース ファイル\Scene\Title</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
