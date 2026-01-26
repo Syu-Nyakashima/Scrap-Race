@@ -181,6 +181,12 @@ void EnemyCPU::SetTypeParameters()
         scrapPriority = 0.5f;
         // デフォルト値のまま
         break;
+        
+    case AIType::obstruction:
+		aggressiveness = 0.9f;      // 壁をあまり気にしない
+        scrapPriority = 0.4f;       // スクラップ優先度低め
+        recoverySpeed *= 1.2f;      // 立て直し速め
+		break;
 
     case AIType::ScrapHunter:
         aggressiveness = 0.7f;
@@ -500,15 +506,15 @@ bool EnemyCPU::ShouldStartDrift(float absAngleDiff) const
 
     if (driftSkill > 0.8f) {
         // 上手: 30度以上でドリフト
-        threshold = 30.0f;
+        threshold = 15.0f;
     }
     else if (driftSkill > 0.5f) {
         // 普通: 45度以上でドリフト
-        threshold = 45.0f;
+        threshold = 30.0f;
     }
     else {
         // 下手: 60度以上でドリフト
-        threshold = 60.0f;
+        threshold = 45.0f;
     }
 
     // 速度も考慮: 速いほどドリフトしやすい
@@ -794,19 +800,19 @@ void EnemyCPU::OnWallHit()
         // レベル3: かなり危険 - 長めのバック
         wallHitRecoveryTimer = 2.5f;
         moveSpeed = -SpdMax * 0.4f;
-        //printfDx("Enemy: 重度の連続衝突! 長めのバック (count: %.0f)\n", consecutiveWallHits);
+        printfDx("Enemy: 重度の連続衝突! 長めのバック (count: %.0f)\n", consecutiveWallHits);
     }
     else if (consecutiveWallHits >= 2.0f) {
         // レベル2: 危険 - バック
         wallHitRecoveryTimer = 1.5f;
         moveSpeed = -SpdMax * 0.3f;
-        //printfDx("Enemy: 連続衝突検出! バック開始 (count: %.0f)\n", consecutiveWallHits);
+        printfDx("Enemy: 連続衝突検出! バック開始 (count: %.0f)\n", consecutiveWallHits);
     }
     else {
         // レベル1: 通常の衝突 - 停止して向き直し
         wallHitRecoveryTimer = 1.0f;
         moveSpeed = 0.0f;
-        //printfDx("Enemy: 壁衝突 (count: %.0f)\n", consecutiveWallHits);
+        printfDx("Enemy: 壁衝突 (count: %.0f)\n", consecutiveWallHits);
     }
 }
 

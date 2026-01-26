@@ -1,6 +1,7 @@
 ﻿#include "CarBase.h"
 #include <math.h>
 #include "ItemManager.h"
+#include "EffectManager.h"
 
 CarBase::CarBase(Stage& stageRef)
 	: stage(stageRef), ModelHandle(-1), hitWall(false), wasHitWall(false), onGround(false),
@@ -422,11 +423,19 @@ void CarBase::ApplyWallDamage()
     // 壁に当たった瞬間のHP減少
     if (justHitWall)
     {
+		// 速度の絶対値を取得
         float currentSpeed = fabsf(moveSpeed);
 
         //HP減少
         float damage = currentSpeed * DAMAGE_MULTIPLIER;
         Hp -= damage;
+
+        if(effectManager != nullptr)
+        {
+			effectManager->AddDamageFlash(damage);
+			effectManager->AddScreenShake(damage);
+            //printfDx("Effect再生（壁接触）\n");
+		}
     }
 }
 
@@ -497,6 +506,13 @@ void CarBase::ProcessCarCollision(CarBase* otherCar,float currentDist)
         if (damage > 0.1f) {  // 最低ダメージ閾値
             Hp -= damage;
             //printfDx("衝突 Damage: %.2f (RelSpeed: %.1f)\n", damage, relativeSpeed);
+
+            if (effectManager != nullptr)
+            {
+				effectManager->AddDamageFlash(damage);
+				effectManager->AddScreenShake(damage);
+                //printfDx("Effect再生（車接触）\n");
+            }
         }
 
         // 相対速度が一定以上ならRareScrap生成

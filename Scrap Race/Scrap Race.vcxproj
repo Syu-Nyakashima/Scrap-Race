@@ -145,6 +145,7 @@
     <ClCompile Include="Src\BaseScene.cpp" />
     <ClCompile Include="Src\Camera.cpp" />
     <ClCompile Include="Src\CarBase.cpp" />
+    <ClCompile Include="Src\EffectManager.cpp" />
     <ClCompile Include="Src\EnemyCPU.cpp" />
     <ClCompile Include="Src\ItemManager.cpp" />
     <ClCompile Include="Src\Main.cpp" />
@@ -170,6 +171,7 @@
     <ClInclude Include="Src\BaseScene.h" />
     <ClInclude Include="Src\Camera.h" />
     <ClInclude Include="Src\CarBase.h" />
+    <ClInclude Include="Src\EffectManager.h" />
     <ClInclude Include="Src\EnemyCPU.h" />
     <ClInclude Include="Src\ItemManager.h" />
     <ClInclude Include="Src\MenuScene.h" />

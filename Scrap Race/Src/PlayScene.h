@@ -4,6 +4,7 @@
 #include "Camera.h"
 #include "Stage.h"
 #include "ItemManager.h"
+#include "EffectManager.h"
 #include "EnemyCPU.h"
 #include "MiniMap.h"
 #include <vector>
@@ -58,7 +59,7 @@ private:
     Stage stage;
     Camera camera;
     ItemManager itemManager;
-
+	EffectManager effectManager;
     MiniMap* miniMap;
 
     // ŠÔŠÇ—

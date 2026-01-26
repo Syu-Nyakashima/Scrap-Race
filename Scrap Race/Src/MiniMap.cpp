@@ -64,7 +64,7 @@ void MiniMap::Terminate()
 {
 }
 
-void MiniMap::Draw(const std::vector<CarBase*>& allCars, int Player)
+void MiniMap::Draw(const std::vector<CarBase*>& allCars, int Player, int offsetX, int offsetY)
 {
     // 1. 事前描画したスクリーンバッファを半透明で描画
     SetDrawBlendMode(DX_BLENDMODE_ALPHA, 200);
@@ -72,7 +72,7 @@ void MiniMap::Draw(const std::vector<CarBase*>& allCars, int Player)
     SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 
     // 2. 枠線を描画
-    DrawBox(mapX, mapY, mapX + mapWidth, mapY + mapHeight, frameColor, FALSE);
+    DrawBox(mapX + offsetX, mapY + offsetY, mapX + mapWidth + offsetX, mapY + mapHeight + offsetY, frameColor, FALSE);
 
     // 3. タイトルを描画（デフォルトフォント使用）
     SetFontSize(12);

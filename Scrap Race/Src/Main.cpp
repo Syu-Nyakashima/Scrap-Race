@@ -74,8 +74,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     SetMainWindowText("スクラップレース");         // ウィンドウタイトル
     SetUseDirect3DVersion(DX_DIRECT3D_11);         // 使用バージョン指定
     
+	// --- DxLib初期化 ---
     if (DxLib_Init() == -1)
         return -1;
+
+	// --- ライティング設定 ---
+    SetGlobalAmbientLight(GetColorF(0.7f, 0.7f, 0.7f, 1.0f));  // 環境光を明るく
+    ChangeLightTypeDir(VGet(0.3f, -1.0f, 0.3f));  // 斜め上からの光
+    SetLightDifColor(GetColorF(1.2f, 1.2f, 1.2f, 1.0f));  // 拡散光を強く
 
     // --- WndProcをImGui対応に差し替え ---
     g_hWnd = GetMainWindowHandle();

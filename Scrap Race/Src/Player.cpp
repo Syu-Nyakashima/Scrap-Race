@@ -18,7 +18,7 @@ void Player::Initialize()
     CarBase::Initialize();
 
     //モデル読み込み
-    ModelHandle = MV1LoadModel("Data/Model/free_car_01.mv1");
+    ModelHandle = MV1LoadModel("Data/Model/Car_Red.mv1");
     if (ModelHandle == -1) printfDx("モデル読み込み失敗！\n");
     
     // 位置初期化

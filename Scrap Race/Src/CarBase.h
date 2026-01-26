@@ -4,6 +4,7 @@
 #include <vector>
 
 class ItemManager;
+class EffectManager;
 
 class CarBase {
 public:
@@ -21,6 +22,7 @@ public:
 
     // ItemManagerの設定
     void SetItemManager(ItemManager* itemMgr) { itemManager = itemMgr; }
+	void SetEffectManager(EffectManager* effectMgr) { effectManager = effectMgr; }
 
     // ゲッター
     VECTOR GetPosition() const { return pos; }
@@ -64,6 +66,7 @@ protected:
     // 既存のメンバー
     std::vector<CarBase*>* allCars;  // 全車両へのポインタ
     ItemManager* itemManager;
+	EffectManager* effectManager;
 
     // サブクラスで実装する入力処理
     virtual void UpdateInput(float delta) = 0;

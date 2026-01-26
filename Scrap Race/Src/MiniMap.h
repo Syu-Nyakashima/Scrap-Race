@@ -14,7 +14,7 @@ public:
 	void Initialize();
 	void Terminate();
 
-	void Draw(const std::vector<CarBase*>& allCars,int Player);
+	void Draw(const std::vector<CarBase*>& allCars, int Player, int offsetX, int offsetY);
 
 private:
 	void WorldToMiniMap(float worldX, float worldZ, int& miniX, int& miniY);

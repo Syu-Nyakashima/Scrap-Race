@@ -12,10 +12,10 @@
 PlayScene::PlayScene(AIDifficulty difficulty) : player(stage)
 {
     //オブジェクトの構築、メンバ変数の初期化
-     // 敵を3台生成(例)
     enemies.push_back(new EnemyCPU(stage, enemyDifficulty, AIType::Attack));
     enemies.push_back(new EnemyCPU(stage, enemyDifficulty, AIType::Balance));
     enemies.push_back(new EnemyCPU(stage, enemyDifficulty, AIType::Defense));
+    enemies.push_back(new EnemyCPU(stage, enemyDifficulty, AIType::obstruction));
     enemies.push_back(new EnemyCPU(stage, enemyDifficulty, AIType::ScrapHunter));
 
 	miniMap = new MiniMap(1000, 20, 180, 180, 1700.0f, 1700.0f, &stage);
@@ -76,8 +76,10 @@ void PlayScene::Initialize()
     player.Initialize();
     camera.Initialize();
     itemManager.Initialize();
+	effectManager.Initialize();
 
     player.SetItemManager(&itemManager);
+	player.SetEffectManager(&effectManager);
 
     // 敵の初期化
     for (int i = 0; i < enemies.size(); i++)
@@ -85,6 +87,7 @@ void PlayScene::Initialize()
         enemies[i]->Initialize();
 
         enemies[i]->SetItemManager(&itemManager);
+		//enemies[i]->SetEffectManager(&effectManager);
 
         // 初期位置をずらす
         enemies[i]->pos = VGet(-5.0f * (i + 1), 10.0f, -10.0f);
@@ -146,6 +149,7 @@ void PlayScene::Terminate()
     stage.Terminate();
     camera.Terminate();
     itemManager.Terminate();
+	effectManager.Terminate();
 
     for (auto* enemy : enemies) {
         enemy->Terminate();
@@ -245,6 +249,7 @@ void PlayScene::UpdateGame()
     camera.Update(player, deltaTime);
     stage.Update();
     itemManager.Update(deltaTime, stage.GetCheckColModel(), allCars);
+	effectManager.Update(deltaTime);
 
     // 周回とラップタイム更新
     UpdateLaps();
@@ -447,6 +452,8 @@ void PlayScene::Draw()
 
     itemManager.Draw();
 
+	effectManager.Draw();
+
     //UI
     DrawRaceUI();
 
@@ -520,11 +527,17 @@ void PlayScene::DrawCountDown()
 
 void PlayScene::DrawRaceUI()
 {
-    // ベース画像を描画
-    DrawGraph(1000, 450, SpeedMeterBase, true);
-    DrawGraph(1090, 580, KmBase, true);
+	// 画面揺れオフセット取得(EffectManager)
+    VECTOR shakeOffset = effectManager.GetScreenShakeOffset();
+    int offsetX = (int)shakeOffset.x;
+    int offsetY = (int)shakeOffset.y;
 
-    DrawFormatString(1100, 600, GetColor(255, 255, 255),
+
+    // ベース画像を描画
+    DrawGraph(1000 + offsetX, 450 + offsetY, SpeedMeterBase, true);
+    DrawGraph(1090 + offsetX, 580 + offsetY, KmBase, true);
+
+    DrawFormatString(1100 + offsetX, 600 + offsetY, GetColor(255, 255, 255),
         " %.0f", allCars[0]->moveSpeed);
 
     // スピード比率を計算
@@ -532,7 +545,7 @@ void PlayScene::DrawRaceUI()
 
     // 針の描画
     float needleAngle = -85.0f + (270.0f * speedRatio);
-    DrawRotaGraph2(1122, 572, 2, 52, 1.0f,
+    DrawRotaGraph2(1122 + offsetX, 572 + offsetY, 2, 52, 1.0f,
         needleAngle * DX_PI_F / 180.0f,
         MeterNeedle, true, false);
 
@@ -546,7 +559,7 @@ void PlayScene::DrawRaceUI()
         float lowSpeedRatio = lowSpeedAngleRange / 180.0f;   // 全体(185度)に対する割合
 
         DrawArcImageMeter(
-            1120, 573,
+            1120 + offsetX, 573 + offsetY,
             LowSpeedMeter,
             lowSpeedRatio,
             85.0f,
@@ -559,7 +572,7 @@ void PlayScene::DrawRaceUI()
     {
         // 低速メーターは満タン表示
         DrawArcImageMeter(
-            1120, 573,
+            1120 + offsetX, 573 + offsetY,
             LowSpeedMeter,
             1.0f,
             85.0f,
@@ -577,7 +590,7 @@ void PlayScene::DrawRaceUI()
         if (highSpeedRatio > 1.0f) highSpeedRatio = 1.0f;
 
         DrawArcImageMeter(
-            1120, 573,
+            1120 + offsetX, 573 + offsetY,
             HighSpeedMeter,
             highSpeedRatio,
             85.0f,
@@ -602,7 +615,7 @@ void PlayScene::DrawRaceUI()
     }
 
     DrawArcImageMeter(
-        1121, 572,      // 中心座標
+        1121 + offsetX, 572 + offsetY,      // 中心座標
         hpMeterHandle,      // HP画像
         hpRatio,            // 表示割合
         103.0f,             // 内側半径
@@ -612,7 +625,7 @@ void PlayScene::DrawRaceUI()
     );
 
     // その他のUI
-    DrawGraph(40, 570, LapAndRankBase, true);
+    DrawGraph(40 + offsetX, 570 + offsetY, LapAndRankBase, true);
     //DrawGraph(10, 10, TimeUI, true);
 
     // 順位UI
@@ -623,11 +636,11 @@ void PlayScene::DrawRaceUI()
             break;
         }
     }
-    DrawGraph(200, 605, RankUI[playerRank], true);
+    DrawGraph(200 + offsetX, 605 + offsetY, RankUI[playerRank], true);
 
     // ラップUI
-    DrawGraph(50, 607, lapUI[player.currentLap], true);
-    DrawGraph(115, 645, lapUI[TOTAL_LAPS], true);
+    DrawGraph(50 + offsetX, 607 + offsetY, lapUI[player.currentLap], true);
+    DrawGraph(115 + offsetX, 645 + offsetY, lapUI[TOTAL_LAPS], true);
 
     // ラップ、タイム、順位などのテキスト表示
     DrawFormatString(10, 10, GetColor(255, 255, 255),
@@ -638,7 +651,7 @@ void PlayScene::DrawRaceUI()
             "BEST LAP: %.2f", bestLapTime);
     }
 
-	miniMap->Draw(allCars, 0); // プレイヤーはインデックス0
+    miniMap->Draw(allCars, 0, offsetX, offsetY); // プレイヤーはインデックス0
 }
 
 void PlayScene::DrawArcImageMeter(int centerX, int centerY, int graphHandle, float ratio, float innerRadius, float outerRadius, float startAngleDeg, float totalAngleDeg)
